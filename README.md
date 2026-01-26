@@ -8,11 +8,11 @@ It also labels a **market regime** (TREND/RANGE × HIGH/LOW volatility) from **1
 
 ## What this script does
 
-### 1) Streams Alpaca data
+1) Streams Alpaca data
 - **1m bars** (used to build higher timeframes)
 - **quotes** (context-only: bid/ask snapshot, spread, mid)
 
-### 2) Aggregates bars (IMPORTANT: closed bars only)
+2) Aggregates bars (IMPORTANT: closed bars only)
 A `BarAggregator` converts incoming **1m bars** into:
 - 5m bars
 - 15m bars
@@ -21,7 +21,7 @@ A `BarAggregator` converts incoming **1m bars** into:
 
 ✅ It **emits only CLOSED bars** (no partial candles).
 
-### 3) Computes features (only from CLOSED bars)
+3) Computes features
 For each timeframe and symbol, `RollingSeries` computes:
 
 - `ret_1` (last close-to-close return)
@@ -33,7 +33,7 @@ For each timeframe and symbol, `RollingSeries` computes:
 - `vwap_dist_pct` (distance from VWAP)
 - `vol_z_20` (20-period volume z-score)
 
-### 4) Eligibility / Session-state engine (VWAP checkpoint rules)
+4) Eligibility / Session-state engine (VWAP checkpoint rules)
 The `EligibilityEngine` maintains a `SymbolSession` per symbol and updates state on:
 - **5m close**: early filters (extreme VWAP dislocation, flip logic, chop penalty)
 - **15m close**: assigns VWAP-based directional bias (LONG_ONLY / SHORT_ONLY / BOTH)
@@ -46,7 +46,7 @@ States:
 - `RECONSIDER`
 - `CONFIRMED`
 
-### 5) Market regime labeling (1h CLOSED only)
+5) Market regime labeling (1h CLOSED only)
 For the chosen `REGIME_SYMBOL`, on each **1h close** it writes a regime row using:
 - `ADX >= 22` → `TREND`, else `RANGE`
 - `ATRP >= 0.60%` → `HIGH_VOL`, else `LOW_VOL`
@@ -74,35 +74,36 @@ Writes a session_state.csv every time the 5m/15m/30m gates updates a symbol's st
 Create a .env in the project root (or export these in your shell):
 
 Required
-
+```bash
 APCA_API_KEY_ID — Alpaca key
 
 APCA_API_SECRET_KEY — Alpaca secret
-
+```
 Common
-
-SYMBOLS — comma-separated list
-Default is a large prefilled list in code.
+```bash
+SYMBOLS — comma-separated list of symbols to monitor (e.g. SPY,QQQ,AAPL)
 
 OUT_DIR — output folder (default: ./data_store)
 
 ALPACA_DATA_FEED — IEX (default) or SIP
 
 ALPACA_WS_URL — defaults to wss://stream.data.alpaca.markets/v2/iex (kept for compatibility; stream uses feed=)
+```
+---
 
-Eligibility / VWAP tuning
+## Eligibility / VWAP tuning
 
-VWAP_EXTREME_DIST_PCT — default 1.25
+`VWAP_EXTREME_DIST_PCT — default 1.25`
 If abs(vwap_dist_pct) ≥ this on 5m #1, symbol is suspended.
 
-VWAP_NEAR_PCT — default 0.10
+`VWAP_NEAR_PCT — default 0.10`
 Defines “near VWAP” zone used for chop/mean-reversion logic.
 
 Regime benchmark symbol selection
 
 REGIME_SYMBOL = If set to a symbol in SYMBOLS, it will be used.
-
 Otherwise the monitor will auto-select the symbol with the highest CONFIRMED score after 30m logic.
+
 
 ---
 
@@ -130,12 +131,14 @@ WORK_ROOT (default workspaces)
 ---
 
 ## Running
+
 To run the monitor:
 ```bash
 python market_monitor.py
 ```
-### Minimal .env example:
 
+Minimal .env example:
+```bash
 APCA_API_KEY_ID=your_key
 APCA_API_SECRET_KEY=your_secret
 ALPACA_DATA_FEED=IEX
@@ -144,17 +147,17 @@ OUT_DIR=./data_store
 LOG_QUOTES=false
 VWAP_EXTREME_DIST_PCT=1.25
 VWAP_NEAR_PCT=0.10
-REGIME_SYMBOL=""       #(Optional)
+REGIME_SYMBOL=""
+```
+---
 
-### Notes / Design decisions
+## Notes / Design decisions
 
 No partial candles: features + eligibility update only on CLOSED 5m/15m/30m/1h bars.
 
 VWAP is intraday reset: VWAP accumulators reset on NY trading day change.
 
 Quotes are context-only: they do not affect features; they are logged with session state for traceability.
-
----
 
 ## Troubleshooting
 
@@ -163,6 +166,8 @@ Quotes are context-only: they do not affect features; they are logged with sessi
 If you see: Missing APCA_API_KEY_ID... or Missing APCA_API_SECRET_KEY...
 
 > Ensure .env exists and python-dotenv is installed or export the vars in your shell session
+
+---
 
 ### No output files
 
