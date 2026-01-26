@@ -1,4 +1,4 @@
-# MarketMonitor (Alpaca) — Closed-Bar Feature + Eligibility Engine
+# MarketMonitor
 
 A real-time market monitor that streams **1-minute bars + live quotes** from Alpaca, aggregates them into **CLOSED** 5m/15m/30m/1h bars, computes technical features **only on closed bars**, and runs an **eligibility / session-state engine** (VWAP + candle direction + chop detection) to determine which symbols are “trade-worthy” as the session develops.
 
