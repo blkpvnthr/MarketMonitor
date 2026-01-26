@@ -1,0 +1,62 @@
+universe:
+  etfs:
+    - SPY
+    - QQQ
+    - IWM
+    - DIA
+    - XLK
+    - XLF
+    - XLE      # Energy Select Sector SPDR
+    - XLV      # Health Care Select Sector SPDR
+    - TQQQ     # ProShares UltraPro QQQ
+    - QTUM     # Defiance Quantum ETF
+    - BUZZ     # VanEck Social Sentiment ETF
+    - CHAT     # Roundhill Generative AI & Tech ETF
+    - UNG      # US Natural Gas Fund
+    - NVD      # GraniteShares 2x Long NVDA ETF
+
+  stocks:
+    - AAPL
+    - MSFT
+    - NVDA
+    - AMZN
+    - META
+    - GOOGL
+    - TSLA
+    - AMD
+    - JPM
+    - BAC
+    - RGTI
+    - HEPS
+    - OUST
+    - IONQ
+    - QBTS
+    - LUNR
+    - SOUN
+    - UBER
+    - MIND
+    - WAVE
+    - OPEN
+    - KXIN
+    - NGD
+    - NKTR
+    - IAG
+    - ASRT
+    - KITT
+    - HFUS
+    - GORO
+
+filters:
+  min_price: 10.0
+  max_price: 1000.0
+
+  # Liquidity (use rolling 20d averages)
+  min_avg_volume: 5_000_000
+  min_avg_dollar_volume: 500_000_000
+
+  # Volatility sanity
+  min_atr_pct: 0.5      # ATR / price (%)
+  max_atr_pct: 5.0
+
+  # Spread proxy (if you don’t have quotes)
+  max_1m_range_pct: 0.4
