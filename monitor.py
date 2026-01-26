@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Deque, Dict, Optional, List, Tuple, Any
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 
 import numpy as np # pyright: ignore[reportMissingImports]
 import pandas as pd # pyright: ignore[reportMissingModuleSource]
