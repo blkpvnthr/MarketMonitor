@@ -99,9 +99,7 @@ If abs(vwap_dist_pct) ≥ this on 5m #1, symbol is suspended.
 `VWAP_NEAR_PCT — default 0.10`
 Defines “near VWAP” zone used for chop/mean-reversion logic.
 
-Regime benchmark symbol selection
-
-REGIME_SYMBOL = If set to a symbol in SYMBOLS, it will be used.
+`REGIME_SYMBOL` If set to a symbol in SYMBOLS, it will be used.
 Otherwise the monitor will auto-select the symbol with the highest CONFIRMED score after 30m logic.
 
 
@@ -134,7 +132,7 @@ WORK_ROOT (default workspaces)
 
 To run the monitor:
 ```bash
-python market_monitor.py
+python monitor.py
 ```
 
 Minimal .env example:
@@ -163,17 +161,15 @@ Quotes are context-only: they do not affect features; they are logged with sessi
 
 ### Missing keys
 
-If you see: Missing APCA_API_KEY_ID... or Missing APCA_API_SECRET_KEY...
+> If you see: Missing APCA_API_KEY_ID... or Missing APCA_API_SECRET_KEY...
 
-> Ensure .env exists and python-dotenv is installed or export the vars in your shell session
-
----
+Ensure .env exists and python-dotenv is installed or export the vars in your shell session
 
 ### No output files
 
-Check OUT_DIR path and permissions.
+> Verify the process is receiving bars (feed and subscription symbols correct).
 
-Verify the process is receiving bars (feed and subscription symbols correct).
+Check OUT_DIR path and permissions.
 
 ### Data feed issues
 
