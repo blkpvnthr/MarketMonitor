@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlgoBot • Script IDE</title>
+  <link rel="icon" href="../static/favicon.ico" />
+  <style>
+    :root{
+      --bg:#fff; --text:#0b0f17; --muted:rgba(11,15,23,.62);
+      --line:rgba(0,0,0,.12); --panel:rgba(0,0,0,.03);
+      --shadow:0 14px 40px rgba(0,0,0,.10); --radius:16px;
+      --accent:#2563eb; --good:#16a34a; --warn:#d97706; --bad:#dc2626;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
+      font-synthesis-weight:none;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
+    .wrap{ max-width: 1200px; margin: 0 auto; padding: 8px 18px 24px; /* smaller top padding */}
+    header{ margin: 0 0 10px;}
+    .title{display:flex;align-items:center;gap:10px}
+    .pill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 10px;font-size:12px;color:rgba(11,15,23,.72)}
+    .status{display:flex;align-items:center;gap:10px}
+    .dot{width:10px;height:10px;border-radius:999px;background:var(--warn);box-shadow:0 0 0 4px rgba(217,119,6,.18)}
+    .btn{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 12px;font-weight:650;cursor:pointer}
+    .btn.primary{border-color:rgba(37,99,235,.35);background:linear-gradient(135deg, rgba(37,99,235,.10), rgba(99,102,241,.08))}
+    .btn.danger{border-color:rgba(220,38,38,.35);background:rgba(220,38,38,.08)}
+    .grid > .card{ min-height: calc(100vh - 220px); /* adjust if header height changes */ }
+    @media (max-width: 980px){ .grid{ grid-template-columns: 1fr; } }
+    .grid{ display: grid; grid-template-columns: 1fr 1fr; /* exact half/half */ gap: 20px; align-items: start; }
+    @media (max-width: 1100px){ .grid{ grid-template-columns: 1fr; } .grid > .card{ min-height: auto; } }
+    .card{border:1px solid var(--line);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .hd{padding:12px 14px;border-bottom:1px solid var(--line);background:linear-gradient(180deg, rgba(0,0,0,.03), transparent);display:flex;justify-content:space-between;align-items:center}
+    .bd{padding:12px 14px}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px;cursor:pointer}
+    .item strong{display:block}
+    .item small{color:var(--muted)}
+    .editorShell{height:520px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .editorFallback{height:100%;width:100%;padding:12px;font-family:var(--mono);font-size:13px;outline:none;border:0}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    label{display:block;font-size:12px;color:rgba(11,15,23,.70);margin:0 0 6px 2px}
+    input,select{width:100%;padding:10px 11px;border-radius:12px;border:1px solid rgba(0,0,0,.14);background:#fff}
+    .tabs{display:flex;gap:8px;margin-bottom:8px}
+    .tab{padding:8px 10px;border:1px solid var(--line);background:var(--panel);border-radius:999px;font-size:12px;cursor:pointer}
+    .tab.active{border-color:rgba(37,99,235,.35);background:rgba(37,99,235,.08)}
+    pre{margin:0;padding:10px;border:1px solid var(--line);background:rgba(0,0,0,.02);border-radius:12px;height:240px;overflow:auto;font-family:var(--mono);font-size:12px;white-space:pre-wrap}
+  </style>
+
+  <style>
+  :root{
+    --bg: #ffffff;
+    --panel: rgba(0,0,0,.03);
+    --panel2: rgba(0,0,0,.05);
+    --text: #0b0f17;
+    --muted: rgba(11,15,23,.62);
+    --line: rgba(0,0,0,.12);
+    --accent: #2563eb; /* blue */
+    --good: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --shadow: 0 14px 40px rgba(0,0,0,.10);
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; }
+  
+  body{
+    margin:0;
+    font-family: 'Roboto', ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial;
+    color: var(--text);
+    background: var(--bg);
+    min-height: 100vh;
+  }
+
+    /* ===== Glass Navbar ===== */
+    .navbar{
+      position:sticky; top:0; z-index:50;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.85);
+      backdrop-filter:blur(10px);
+    }
+    .navbar .navwrap{
+      margin:0 auto;
+      padding:12px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .navwrap{
+      max-width:1600px;
+    }
+    .navLinks{ display:flex; align-items:center; gap:16px; }
+    .navLinks a{ padding:6px 10px; border-radius:10px; }
+    a{ color:#0b0f17 !important; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{ max-width:1200px; margin:0 auto; padding:22px 18px 42px; }
+/* --- NAVBAR: bulletproof 3-column layout --- */
+.navwrap{
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 10px 16px;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* left | center | right */
+  align-items: center;
+  column-gap: 18px;
+}
+
+/* Left */
+.navLeft{
+  min-width: 0;
+}
+.navTitle{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;      /* keep brand on one line */
+}
+
+/* Center */
+.navLinks{
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  min-width: 0;
+}
+.navLinks a{
+  white-space: nowrap;
+}
+
+/* Right */
+.navRight{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+.navSearch{
+  width: min(420px, 34vw);
+  min-width: 260px;
+}
+
+
+/* Left: brand */
+.navLeft{
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+/* Middle: links centered (don’t hide them) */
+.navLinks{
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  overflow: visible;       /* IMPORTANT: don’t clip links */
+  min-width: 0;
+}
+
+.navLinks a{
+  white-space: nowrap;
+}
+
+/* Right: search + clock + profile pinned right */
+.navRight{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+  min-width: max-content;
+}
+
+.navSearch{
+  width: min(420px, 34vw);
+  min-width: 260px;
+}
+
+
+  /* ===== Header ===== */
+  header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin: 6px 0 14px;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .brand h1{
+    margin:0;
+    font-size: 26px;
+    letter-spacing: .2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .logo{
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(37,99,235,.95), rgba(99,102,241,.9));
+    box-shadow: 0 10px 22px rgba(37,99,235,.18);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 900;
+    color:#ffffff;
+  }
+  .subtitle{
+    margin:0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.35;
+    max-width: 740px;
+  }
+
+  .status{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.9);
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+    user-select: none;
+  }
+  .dot{
+    width:10px;height:10px;border-radius:999px;
+    background: var(--warn);
+    box-shadow: 0 0 0 4px rgba(217,119,6,.18);
+  }
+  .status strong{ font-size: 13px; }
+  .status span{ color: var(--muted); font-size: 12px; }
+
+  /* ===== Layout ===== */
+  .grid{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap: 16px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  .card{
+    background: rgba(255,255,255,.95);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .card .hd{
+    padding: 14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(0,0,0,.03), transparent);
+  }
+  .card .hd h2{
+    margin:0;
+    font-size: 14px;
+    letter-spacing: .3px;
+    color: rgba(11,15,23,.92);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .pill{
+    font-size: 12px;
+    color: rgba(11,15,23,.72);
+    border: 1px solid var(--line);
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.03);
+  }
+  .card .bd{ padding: 16px; }
+
+  /* ===== Controls ===== */
+  label{
+    display:block;
+    font-size: 12px;
+    color: rgba(11,15,23,.70);
+    margin: 0 0 6px 2px;
+  }
+  input, select{
+    width:100%;
+    padding: 11px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,.14);
+    background: rgba(255,255,255,.98);
+    color: var(--text);
+    outline: none;
+    transition: .15s ease;
+  }
+  input::placeholder{ color: rgba(11,15,23,.45); }
+  input:focus, select:focus{
+    border-color: rgba(37,99,235,.55);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+  }
+
+  .row{ display:flex; gap:10px; }
+  .row > * { flex: 1; }
+
+  .btnbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top: 12px;
+  }
+  button{
+    cursor:pointer;
+    border: 1px solid rgba(0,0,0,.14);
+    background: rgba(0,0,0,.03);
+    color: var(--text);
+    padding: 11px 12px;
+    border-radius: 14px;
+    font-weight: 650;
+    letter-spacing:.2px;
+    transition: .15s ease;
+  }
+  button:hover{ transform: translateY(-1px); background: rgba(0,0,0,.05); }
+  button:active{ transform: translateY(0px); }
+
+  .primary{
+    border-color: rgba(37,99,235,.35);
+    background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(99,102,241,.08));
+  }
+  .danger{
+    border-color: rgba(220,38,38,.35);
+    background: rgba(220,38,38,.08);
+  }
+
+  .hint{
+    margin-top: 10px;
+    color: rgba(11,15,23,.62);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .hint code{
+    padding: 2px 6px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,.12);
+    background: rgba(0,0,0,.03);
+  }
+
+  /* ===== Watchlist Grid ===== */
+  .watchStatus{
+    margin: 8px 0 14px;
+    color: rgba(11,15,23,.65);
+    font-size: 12px;
+  }
+  .watchGrid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .watchTile{
+    border: 1px solid rgba(0,0,0,.12);
+    background: rgba(0,0,0,.02);
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .watchHead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .watchSym{
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing:.2px;
+  }
+  .stateBadge{
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,.14);
+    background: rgba(0,0,0,.03);
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .stateBadge.CONFIRMED{ border-color: rgba(22,163,74,.45); background: rgba(22,163,74,.10); }
+  .stateBadge.ACTIVE{ border-color: rgba(37,99,235,.45); background: rgba(37,99,235,.10); }
+  .stateBadge.RECONSIDER{ border-color: rgba(217,119,6,.45); background: rgba(217,119,6,.10); }
+  .stateBadge.SUSPENDED{ border-color: rgba(220,38,38,.50); background: rgba(220,38,38,.10); }
+
+  .kvRow{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    font-size: 12px;
+    color: rgba(11,15,23,.88);
+  }
+  .kvRow .k{ color: rgba(11,15,23,.55); }
+  .kvRow .v{ font-weight: 750; }
+
+  .vwapRow{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .vpill{
+    text-align:center;
+    font-size: 12px;
+    padding: 8px 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,.12);
+    background: rgba(255,255,255,.95);
+    user-select: none;
+  }
+
+  .reasonLine{
+    margin-top: 10px;
+    font-size: 12px;
+    color: rgba(11,15,23,.66);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ===== Left feed (optional) ===== */
+  .feed{
+    height: 620px;
+    overflow:auto;
+    padding: 12px;
+    background: rgba(0,0,0,.02);
+    border-radius: 14px;
+    border: 1px solid rgba(0,0,0,.10);
+  }
+  .feed::-webkit-scrollbar{ width: 10px; }
+  .feed::-webkit-scrollbar-thumb{
+    background: rgba(0,0,0,.18);
+    border-radius: 999px;
+    border: 2px solid rgba(0,0,0,0);
+    background-clip: padding-box;
+  }
+  .evt{
+    border: 1px solid rgba(0,0,0,.12);
+    background: rgba(255,255,255,.95);
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+  .evt .meta{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 6px;
+    color: rgba(11,15,23,.65);
+    font-size: 12px;
+  }
+  pre{
+    margin:0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.35;
+    color: rgba(11,15,23,.92);
+  }
+
+  a{
+    color: #0b0f17 !important;
+    text-decoration: none;
+  }
+  a:hover{
+    text-decoration: underline;
+  }
+  .navLinks{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navLinks a{
+  padding: 6px 10px;   /* increases clickable area */
+  border-radius: 10px;
+}
+/* --- tighten top spacing --- */
+.wrap{ padding-top: 8px !important; }
+header{ margin-top: 0 !important; }
+
+/* ===== Script IDE layout fix ===== */
+.grid{
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 12px;
+  align-items: start; /* important */
+}
+
+.rail{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;          /* space between Scripts + Run Config */
+}
+
+@media (max-width: 1100px){
+  .grid{ grid-template-columns: 1fr; }
+}
+
+/* ===== Explorer (VSCode-like) ===== */
+.scriptsPanel .hd{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 12px;
+}
+.scriptsPanel .hd strong{
+  font-size:12px;
+  letter-spacing:.12em;
+  color: rgba(11,15,23,.70);
+}
+.iconBtn{
+  width:32px;height:28px;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(0,0,0,.03);
+  cursor:pointer;
+  font-weight:800;
+}
+
+.scriptsPanel .bd.explorer{
+  padding: 10px 8px;
+}
+
+.tree{
+  user-select:none;
+  font-size:13px;
+}
+
+.treeRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor:pointer;
+  border:1px solid transparent;
+}
+.treeRow:hover{
+  background: rgba(0,0,0,.03);
+}
+.treeRow.active{
+  background: rgba(37,99,235,.10);
+  border-color: rgba(37,99,235,.22);
+}
+
+.chev{
+  width:16px;
+  display:inline-flex;
+  justify-content:center;
+  color: rgba(11,15,23,.55);
+  font-size: 12px;
+}
+.chev.placeholder{ opacity:0; }
+
+.ico{ width:18px; display:inline-flex; justify-content:center; }
+
+.name{
+  flex:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.dot{
+  width:9px;height:9px;border-radius:999px;
+  background: rgba(99,102,241,.70);
+}
+
+.treeChildren{ margin-left: 0; }
+.hidden{ display:none; }
+
+.indent-1{ padding-left: 18px; }
+.indent-2{ padding-left: 36px; }
+.indent-3{ padding-left: 54px; }
+
+.folder .name{ font-weight: 700; }
+.file .name{ font-weight: 600; color: rgba(11,15,23,.86); }
+
+/* small “new file” row */
+.newFile{
+  display:flex;
+  gap:8px;
+  margin-top: 10px;
+  padding: 0 10px 10px;
+}
+.newFile input{
+  flex:1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.14);
+}
+.newFile .btn{
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+  /* Dropdown */
+  .userDropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 190px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 6px 0;
+    display: none;
+    z-index: 1000;
+  }
+
+  .userDropdown a {
+    display: block;
+    padding: 8px 14px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .userDropdown a:hover {
+    background: var(--panel);
+  }
+
+  .userDropdown .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 6px 0;
+  }
+
+  .userDropdown .danger {
+    color: var(--bad);
+  }
+
+</style>
+</head>
+
+<body>
+     <!-- Navbar -->
+<nav class="navbar" role="navigation" aria-label="Primary">
+  <div class="navwrap">
+    <div class="navLeft">
+      <a href="/" style="text-decoration:none;color:inherit;">
+        <div class="navTitle">
+          <strong>Quantum<span style="font-weight: 100 !important;">Quant</span></strong>
+        </div>
+      </a>
+    </div>
+
+    <div class="navLinks" aria-label="Quick links">
+      <a href="/index.html"><span>Dashboard</span></a>
+      <a href="/brokers.html">Brokers</a>
+      <a href="/script.html" style="text-decoration: underline;"></a>Strategy</a>
+      <a href="/backtests.html">Backtests</a>
+    </div>
+
+    <div class="navRight">
+      <input class="navSearch" id="nav-search" type="text" placeholder="Filter feed (e.g. quote, trade)" />
+      <span class="pill" id="nav-clock">--:--</span>
+
+      <!-- User Profile -->
+      <div class="userMenu" id="userMenu">
+        <button class="userBtn" id="userBtn" aria-haspopup="true" aria-expanded="false" type="button">
+          <span class="avatar" id="userAvatar">AQ</span>
+          <span class="caret">▾</span>
+        </button>
+
+        <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
+          <a href="/account.html">Account</a>
+          <a href="/settings.html">Settings</a>
+          <a href="/trades.html">Trade Logs</a>
+          <a href="/security.html">Security</a>
+          <a href="/ideas.html">Ideas</a>
+          <div class="divider"></div>
+          <a href="/help.html">Help</a>
+          <div class="divider"></div>
+          <a href="/login.html" id="loginLink">Log in</a>
+          <a href="/logout" id="logoutLink" class="danger" style="display:none;">Log out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <strong style="font-size:18px;">🧠 Script IDE</strong>
+        <span class="pill" id="modePill">paper</span>
+        <span class="pill" id="scriptPill">untitled.py</span>
+      </div>
+
+      <div class="status">
+        <span class="dot" id="runDot"></span>
+        <div style="display:flex;flex-direction:column;line-height:1.1">
+          <strong id="runState">Idle</strong>
+          <span style="color:var(--muted);font-size:12px" id="runDetail">No active run</span>
+        </div>
+        <button class="btn" id="btnSave">Save</button>
+        <button class="btn primary" id="btnRunPaper">Run Paper</button>
+        <button class="btn primary" id="btnRunLive">Run Live</button>
+        <button class="btn danger" id="btnStop">Stop</button>
+      </div>
+    </header>
+
+   <div class="grid">
+<!-- Left Rail -->
+     <!-- Backtest -->
+<section class="card" id="backtestCard">
+  <div class="hd"><strong>📈 Backtest</strong><span class="pill">API</span></div>
+  <div class="bd">
+    <div class="row">
+      <div>
+        <label>Symbol</label>
+        <input id="btSymbol" value="AAPL" />
+      </div>
+      <div>
+        <label>Timeframe</label>
+        <select id="btTf">
+          <option value="1d" selected>1d</option>
+          <option value="1h">1h</option>
+          <option value="30m">30m</option>
+          <option value="15m">15m</option>
+          <option value="5m">5m</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Start</label>
+        <input id="btStart" type="date" value="2023-01-01" />
+      </div>
+      <div>
+        <label>End</label>
+        <input id="btEnd" type="date" value="2024-12-31" />
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+  <label>Strategy</label>
+  <div class="pill" style="display:inline-flex;">From Editor</div>
+  <div class="hint" style="margin-top:6px;">
+    Backtest uses whatever is currently written in the editor.
+  </div>
+</div>
+
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>SMA Params (JSON)</label>
+        <input id="btParams" value='{"fast":20,"slow":50}' />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Initial cash</label>
+        <input id="btCash" type="number" value="10000" />
+      </div>
+      <div>
+        <label>Commission</label>
+        <input id="btComm" type="number" step="0.01" value="1" />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Slippage (bps)</label>
+        <input id="btSlip" type="number" step="1" value="5" />
+      </div>
+      <div>
+        <label>Position sizing</label>
+        <select id="btPosSize">
+          <option value="all_in" selected>all_in</option>
+          <option value="fixed_qty">fixed_qty</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label>Fixed qty (if fixed_qty)</label>
+        <input id="btQty" type="number" step="0.01" value="1" />
+      </div>
+    </div>
+
+    <div class="btnbar">
+      <button class="primary" id="btnBacktest">Run Backtest</button>
+      <button id="btnClearCharts">Clear</button>
+    </div>
+
+    <div class="hint" id="btHint">
+      Renders 2 plots: <code>Price</code> (with buy/sell markers) and <code>Equity</code>.
+    </div>
+
+    <pre id="btMetrics" style="margin-top:12px;height:160px;"></pre>
+  </div>
+</section>
+  <!-- Center: Editor -->
+  <section class="card">
+    <div class="hd"><strong>🧾 Editor</strong><span class="pill">Python</span></div>
+    <div class="bd">
+      <div class="editorShell" id="editorHost">
+        <textarea class="editorFallback" id="editorFallback" spellcheck="false"></textarea>
+      </div>
+      <div style="margin-top:10px;color:var(--muted);font-size:12px;">
+        Your code runs on the server/runner (API keys never touch the browser).
+      </div>
+    </div>
+  </section>
+
+    
+
+</div>
+
+<script>
+  function getEditorCode(){
+  // If you're using Monaco, keep a handle like: window.editor = monaco.editor.create(...)
+  if (window.editor && typeof window.editor.getValue === "function"){
+    return window.editor.getValue();
+  }
+  // Fallback to textarea
+  return document.getElementById("editorFallback")?.value ?? "";
+}
+
+document.getElementById("btnBacktest")?.addEventListener("click", async () => {
+  const metricsEl = document.getElementById("btMetrics");
+  const hintEl = document.getElementById("btHint");
+
+  const payload = {
+    symbol: document.getElementById("btSymbol")?.value?.trim().toUpperCase(),
+    timeframe: document.getElementById("btTf")?.value,
+    start: document.getElementById("btStart")?.value,
+    end: document.getElementById("btEnd")?.value,
+    params: (() => {
+      try { return JSON.parse(document.getElementById("btParams")?.value || "{}"); }
+      catch { return {}; }
+    })(),
+    initial_cash: Number(document.getElementById("btCash")?.value || 10000),
+    commission: Number(document.getElementById("btComm")?.value || 0),
+    slippage_bps: Number(document.getElementById("btSlip")?.value || 0),
+    position_sizing: document.getElementById("btPosSize")?.value,
+    fixed_qty: Number(document.getElementById("btQty")?.value || 1),
+
+    // ✅ THIS is the strategy:
+    strategy_code: getEditorCode(),
+  };
+
+  if (!payload.strategy_code.trim()){
+    if (metricsEl) metricsEl.textContent = "Editor is empty — write a strategy first.";
+    return;
+  }
+
+  if (metricsEl) metricsEl.textContent = "Running backtest…";
+
+  try{
+    const resp = await fetch("/api/backtest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+
+    const data = await resp.json();
+
+    // show metrics (and whatever plot URLs you return)
+    if (metricsEl) metricsEl.textContent = JSON.stringify(data.metrics ?? data, null, 2);
+    if (hintEl) hintEl.textContent = "Backtest complete.";
+  } catch (e){
+    if (metricsEl) metricsEl.textContent = `Backtest error: ${e?.message || e}`;
+  }
+});
+
+</script>
+  <script>
+    // --- Monaco (optional) ---
+    let editor = null;
+    let currentScriptId = null;
+    let currentRunId = null;
+    let ws = null;
+
+    function getCode() {
+      if (editor) return editor.getValue();
+      return document.getElementById("editorFallback").value;
+    }
+    function setCode(v) {
+      if (editor) editor.setValue(v);
+      else document.getElementById("editorFallback").value = v;
+    }
+    function log(line) {
+      const out = document.getElementById("out");
+      out.textContent = (line + "\\n") + out.textContent;
+    }
+
+    function setRunStatus(kind, title, detail) {
+      const dot = document.getElementById("runDot");
+      const st = document.getElementById("runState");
+      const det = document.getElementById("runDetail");
+      st.textContent = title;
+      det.textContent = detail;
+      const colors = { idle:"var(--warn)", ok:"var(--good)", bad:"var(--bad)" };
+      dot.style.background = colors[kind] || colors.idle;
+      dot.style.boxShadow = kind==="ok" ? "0 0 0 4px rgba(22,163,74,.18)"
+                        : kind==="bad" ? "0 0 0 4px rgba(220,38,38,.18)"
+                        : "0 0 0 4px rgba(217,119,6,.18)";
+    }
+
+    function runPayload(modeOverride) {
+      const mode = modeOverride || document.getElementById("mode").value;
+      document.getElementById("modePill").textContent = mode;
+
+      return {
+        script_id: currentScriptId,
+        code: getCode(),
+        mode,
+        tf: document.getElementById("tf").value,
+        symbols: document.getElementById("symbols").value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean),
+        max_risk: Number(document.getElementById("maxRisk").value || 1.0),
+        timeout_sec: Number(document.getElementById("timeout").value || 30),
+      };
+    }
+
+    async function api(path, opts={}) {
+      const res = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...opts
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    async function loadScripts() {
+      const data = await api("/api/scripts");
+      const list = document.getElementById("scriptList");
+      const count = document.getElementById("scriptCount");
+      count.textContent = data.length;
+      list.innerHTML = "";
+      data.forEach(s => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `<strong>${s.name}</strong><small>${s.updated_at || ""}</small>`;
+        el.onclick = async () => {
+          const full = await api(`/api/scripts/${s.id}`);
+          currentScriptId = full.id;
+          document.getElementById("scriptPill").textContent = full.name;
+          setCode(full.code || "");
+          log(`[loaded] ${full.name}`);
+        };
+        list.appendChild(el);
+      });
+    }
+
+    async function saveScript() {
+      const name = document.getElementById("scriptPill").textContent || "untitled.py";
+      const payload = { id: currentScriptId, name, code: getCode() };
+      const saved = await api("/api/scripts", { method:"POST", body: JSON.stringify(payload) });
+      currentScriptId = saved.id;
+      document.getElementById("scriptPill").textContent = saved.name;
+      log(`[saved] ${saved.name}`);
+      await loadScripts();
+    }
+
+    async function createScript() {
+      const name = (document.getElementById("newName").value || "").trim();
+      if (!name) return;
+      const saved = await api("/api/scripts", { method:"POST", body: JSON.stringify({ name, code: "" }) });
+      currentScriptId = saved.id;
+      document.getElementById("scriptPill").textContent = saved.name;
+      setCode("");
+      document.getElementById("newName").value = "";
+      log(`[created] ${saved.name}`);
+      await loadScripts();
+    }
+
+    function connectRunWS(runId) {
+      if (ws) { try { ws.close(); } catch(e){} }
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${proto}://${location.host}/ws/runs/${runId}`);
+      ws.onopen = () => log(`[ws] connected run=${runId}`);
+      ws.onmessage = (ev) => {
+        // server should send JSON events: {type, msg, ...}
+        try {
+          const e = JSON.parse(ev.data);
+          if (e.type === "log") log(e.msg);
+          else if (e.type === "status") setRunStatus("ok", e.state, e.detail || "");
+          else if (e.type === "error") { setRunStatus("bad", "Error", e.msg || ""); log(`[error] ${e.msg}`); }
+          else log(ev.data);
+        } catch {
+          log(ev.data);
+        }
+      };
+      ws.onclose = () => log("[ws] closed");
+    }
+
+    async function run(mode) {
+      setRunStatus("idle", "Starting…", mode);
+      const started = await api("/api/run", { method:"POST", body: JSON.stringify(runPayload(mode)) });
+      currentRunId = started.run_id;
+      setRunStatus("ok", "Running", `run_id=${currentRunId}`);
+      connectRunWS(currentRunId);
+    }
+
+    async function stop() {
+      if (!currentRunId) return;
+      await api(`/api/stop/${currentRunId}`, { method:"POST" });
+      setRunStatus("idle", "Stopped", `run_id=${currentRunId}`);
+      currentRunId = null;
+      if (ws) { try { ws.close(); } catch(e){} }
+    }
+
+    // Tabs (display-only; your server can send typed events later)
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest(".tab");
+      if (!t) return;
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      // For now we use a single output buffer; later you can route by tab.
+    });
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Monaco init (optional)
+      if (window.require) {
+        window.require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.49.0/min/vs" } });
+        window.require(["vs/editor/editor.main"], () => {
+          const host = document.getElementById("editorHost");
+          const ta = document.getElementById("editorFallback");
+          const initial = ta.value || "# Write your strategy here\\n";
+          ta.style.display = "none";
+          editor = monaco.editor.create(host, {
+            value: initial,
+            language: "python",
+            theme: "vs",
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontFamily: getComputedStyle(document.documentElement).getPropertyValue("--mono"),
+            fontSize: 13,
+          });
+        });
+      } else {
+        setCode("# Write your strategy here\\n");
+      }
+
+      document.getElementById("btnSave").onclick = saveScript;
+      document.getElementById("btnNew").onclick = createScript;
+      document.getElementById("btnRunPaper").onclick = () => run("paper");
+      document.getElementById("btnRunLive").onclick = () => run("live");
+      document.getElementById("btnStop").onclick = stop;
+
+      await loadScripts();
+      setRunStatus("idle", "Idle", "Ready");
+    });
+  </script>
+  <script>
+  // Folder toggle (click folder rows)
+  document.addEventListener("click", (e) => {
+    const row = e.target.closest(".treeRow.folder");
+    if (!row) return;
+
+    const node = row.getAttribute("data-node");
+    const children = document.querySelector(`[data-children="${node}"]`);
+    if (!children) return;
+
+    const isOpen = !children.classList.contains("hidden");
+    children.classList.toggle("hidden", isOpen);
+
+    const chev = row.querySelector(".chev");
+    if (chev) chev.textContent = isOpen ? "▸" : "▾";
+  });
+
+  function setActiveRow(el){
+    document.querySelectorAll(".treeRow").forEach(x => x.classList.remove("active"));
+    el.classList.add("active");
+  }
+
+  async function api(path, opts={}) {
+    const res = await fetch(path, { headers:{ "Content-Type":"application/json" }, ...opts });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  // Render your scripts in explorer tree
+  async function renderScriptsTree(){
+    const scripts = await api("/api/scripts");
+    const root = document.getElementById("scriptTree");
+    root.innerHTML = "";
+
+    scripts.forEach(s => {
+      const row = document.createElement("div");
+      row.className = "treeRow file indent-2";
+      row.setAttribute("data-file", s.name);
+      row.innerHTML = `
+        <span class="chev placeholder"></span>
+        <span class="ico">🐍</span>
+        <span class="name">${s.name}</span>
+      `;
+
+      row.onclick = async () => {
+        setActiveRow(row);
+        const full = await api(`/api/scripts/${s.id}`);
+        window.currentScriptId = full.id;
+        document.getElementById("scriptPill").textContent = full.name;
+        if (window.editor) window.editor.setValue(full.code || "");
+        else document.getElementById("editorFallback").value = full.code || "";
+      };
+
+      root.appendChild(row);
+    });
+
+    const count = document.getElementById("scriptCount");
+    if (count) count.textContent = scripts.length;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderScriptsTree();
+  });
+</script>
+<script>
+  const userBtn = document.getElementById("userBtn");
+  const userDropdown = document.getElementById("userDropdown");
+
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = userDropdown.style.display === "block";
+    userDropdown.style.display = open ? "none" : "block";
+    userBtn.setAttribute("aria-expanded", String(!open));
+  });
+
+  document.addEventListener("click", () => {
+    userDropdown.style.display = "none";
+    userBtn.setAttribute("aria-expanded", "false");
+  });
+</script>
+
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+  <!-- Monaco (optional). If you don’t want CDN, skip and use textarea fallback. -->
+  <script src="https://unpkg.com/monaco-editor@0.49.0/min/vs/loader.js"></script>
+</body>
+</html>

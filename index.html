@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoBot • Watchlist</title>
+
+  <link rel="stylesheet" href="/includes/CSS/styles.css"/>
+  <link rel="icon" type="image/x-icon" href="../static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --panel: rgba(0,0,0,.03);
+      --panel2: rgba(0,0,0,.05);
+      --text:#0b0f17;
+      --muted: rgba(11,15,23,.62);
+      --line: rgba(0,0,0,.12);
+      --accent:#2563eb;
+      --good:#16a34a;
+      --warn:#d97706;
+      --bad:#dc2626;
+      --shadow:0 14px 40px rgba(0,0,0,.10);
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:'Roboto', ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial;
+      color:var(--text);
+      background:var(--bg);
+      min-height:100vh;
+    }
+
+    /* ===== Glass Navbar ===== */
+    .navbar{
+      position:sticky; top:0; z-index:50;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.85);
+      backdrop-filter:blur(10px);
+    }
+    .navbar .navwrap{
+      margin:0 auto;
+      padding:12px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .navwrap{
+      max-width:1600px;
+    }
+    .navLinks{ display:flex; align-items:center; gap:16px; }
+    .navLinks a{ padding:6px 10px; border-radius:10px; }
+    a{ color:#0b0f17 !important; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{ max-width:1200px; margin:0 auto; padding:22px 18px 42px; }
+    /* --- NAVBAR: bulletproof 3-column layout --- */
+    .navwrap{
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 10px 16px;
+
+      display: grid;
+      grid-template-columns: auto 1fr auto; /* left | center | right */
+      align-items: center;
+      column-gap: 18px;
+    }
+    .navLinks a.active{
+      text-decoration: underline;
+    }
+
+    /* Left */
+    .navLeft{ min-width: 0; }
+    .navTitle{
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      white-space: nowrap;      /* keep brand on one line */
+    }
+
+    /* Center */
+    .navLinks{
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      min-width: 0;
+    }
+    .navLinks a{ white-space: nowrap; }
+
+    /* Right */
+    .navRight{
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      min-width: 0;
+    }
+    .navSearch{
+      width: min(420px, 34vw);
+      min-width: 260px;
+    }
+
+    /* Left: brand */
+    .navLeft{
+      flex: 0 0 auto;
+      min-width: max-content;
+    }
+
+    /* Middle: links centered (don’t hide them) */
+    .navLinks{
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      overflow: visible;       /* IMPORTANT: don’t clip links */
+      min-width: 0;
+    }
+
+    .navLinks a{ white-space: nowrap; }
+
+    /* Right: search + clock + profile pinned right */
+    .navRight{
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-left: auto;
+      min-width: max-content;
+    }
+
+    .navSearch{
+      width: min(420px, 34vw);
+      min-width: 260px;
+    }
+
+    /* ===== Header ===== */
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin:6px 0 14px;
+    }
+    .brand{ display:flex; flex-direction:column; gap:6px; }
+    .brand h1{
+      margin:0;
+      font-size:26px;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .logo{
+      width:36px; height:36px;
+      border-radius:12px;
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(99,102,241,.9));
+      box-shadow:0 10px 22px rgba(37,99,235,.18);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:#fff;
+    }
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      max-width:740px;
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.9);
+      box-shadow:var(--shadow);
+      white-space:nowrap;
+      user-select:none;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;
+      background:var(--warn);
+      box-shadow:0 0 0 4px rgba(217,119,6,.18);
+    }
+    .status strong{ font-size:13px; }
+    .status span{ color:var(--muted); font-size:12px; }
+
+    /* ===== Cards / Layout ===== */
+    .grid{
+      display:grid;
+      grid-template-columns:380px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
+
+    .card{
+      background:rgba(255,255,255,.95);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(0,0,0,.03), transparent);
+      gap:10px;
+    }
+    .card .hd h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.3px;
+      color:rgba(11,15,23,.92);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+    .pill{
+      font-size:12px;
+      color:rgba(11,15,23,.72);
+      border:1px solid var(--line);
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,.03);
+    }
+    .card .bd{ padding:16px; }
+
+    /* ===== Controls ===== */
+    label{
+      display:block;
+      font-size:12px;
+      color:rgba(11,15,23,.70);
+      margin:0 0 6px 2px;
+    }
+    input, select{
+      width:100%;
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.14);
+      background:rgba(255,255,255,.98);
+      color:var(--text);
+      outline:none;
+      transition:.15s ease;
+    }
+    input::placeholder{ color:rgba(11,15,23,.45); }
+    input:focus, select:focus{
+      border-color:rgba(37,99,235,.55);
+      box-shadow:0 0 0 4px rgba(37,99,235,.12);
+    }
+    .row{ display:flex; gap:10px; }
+    .row > * { flex:1; }
+
+    button{
+      cursor:pointer;
+      border:1px solid rgba(0,0,0,.14);
+      background:rgba(0,0,0,.03);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:14px;
+      font-weight:650;
+      letter-spacing:.2px;
+      transition:.15s ease;
+    }
+    button:hover{ transform:translateY(-1px); background:rgba(0,0,0,.05); }
+    button:active{ transform:translateY(0); }
+    .primary{
+      border-color:rgba(37,99,235,.35);
+      background:linear-gradient(135deg, rgba(37,99,235,.10), rgba(99,102,241,.08));
+    }
+
+    .hint{
+      margin-top:10px;
+      color:rgba(11,15,23,.62);
+      font-size:12px;
+      line-height:1.4;
+    }
+    .hint code{
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(0,0,0,.03);
+    }
+
+    /* ===== Feed ===== */
+    .feed{
+      height:620px;
+      overflow:auto;
+      padding:12px;
+      background:rgba(0,0,0,.02);
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.10);
+    }
+    .feed::-webkit-scrollbar{ width:10px; }
+    .feed::-webkit-scrollbar-thumb{
+      background:rgba(0,0,0,.18);
+      border-radius:999px;
+      border:2px solid rgba(0,0,0,0);
+      background-clip:padding-box;
+    }
+    .evt{
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(255,255,255,.95);
+      border-radius:14px;
+      padding:10px 12px;
+      margin-bottom:10px;
+    }
+    .evt .meta{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:6px;
+      color:rgba(11,15,23,.65);
+      font-size:12px;
+    }
+    pre{
+      margin:0;
+      white-space:pre-wrap;
+      word-break:break-word;
+      font-size:12px;
+      line-height:1.35;
+      color:rgba(11,15,23,.92);
+    }
+
+    /* ===== Top Momentum Card ===== */
+    .topMomentum{
+      margin-bottom:14px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(0,0,0,.02);
+      padding:12px;
+    }
+    .tmHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .tmTitle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .tmMeta{
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .tmGrid{
+      display:grid;
+      grid-template-columns:1fr 260px;
+      gap:12px;
+      align-items:stretch;
+    }
+    @media (max-width:980px){ .tmGrid{ grid-template-columns:1fr; } }
+    .tmChartWrap, .tmStats{
+      border:1px solid rgba(0,0,0,.10);
+      background:rgba(255,255,255,.9);
+      border-radius:14px;
+      padding:10px;
+      overflow:hidden;
+    }
+    .tmStats .r{
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      padding:6px 2px;
+      border-bottom:1px dashed rgba(0,0,0,.10);
+    }
+    .tmStats .r:last-child{ border-bottom:none; }
+    .tmStats .k{ color:rgba(11,15,23,.55); }
+    .tmStats .v{ font-weight:900; }
+
+    /* ===== Watchlist Grid ===== */
+    .watchStatus{ margin:8px 0 14px; color:rgba(11,15,23,.65); font-size:12px; }
+    .watchGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+      gap:12px;
+    }
+    .watchTile{
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(0,0,0,.02);
+      border-radius:14px;
+      padding:12px;
+    }
+    .watchHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .watchSym{ font-weight:900; font-size:16px; letter-spacing:.2px; }
+    .stateBadge{
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.14);
+      background:rgba(0,0,0,.03);
+      text-transform:uppercase;
+      user-select:none;
+    }
+    .stateBadge.CONFIRMED{ border-color:rgba(22,163,74,.45); background:rgba(22,163,74,.10); }
+    .stateBadge.ACTIVE{ border-color:rgba(37,99,235,.45); background:rgba(37,99,235,.10); }
+    .stateBadge.RECONSIDER{ border-color:rgba(217,119,6,.45); background:rgba(217,119,6,.10); }
+    .stateBadge.SUSPENDED{ border-color:rgba(220,38,38,.50); background:rgba(220,38,38,.10); }
+
+    .kvRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      font-size:12px;
+      color:rgba(11,15,23,.88);
+    }
+    .kvRow .k{ color:rgba(11,15,23,.55); }
+    .kvRow .v{ font-weight:750; }
+
+    .vwapRow{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:8px;
+      margin-top:10px;
+    }
+    .vpill{
+      text-align:center;
+      font-size:12px;
+      padding:8px 6px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(255,255,255,.95);
+      user-select:none;
+    }
+    .reasonLine{
+      margin-top:10px;
+      font-size:12px;
+      color:rgba(11,15,23,.66);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* ===== Chart Carousel ===== */
+    .card.carousel .bd{ padding:14px; }
+    .carouselViewport{
+      overflow:hidden;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.10);
+      background:rgba(0,0,0,.02);
+    }
+    .carouselTrack{
+      display:flex;
+      width:100%;
+      transform:translateX(0);
+      transition:transform .28s ease;
+      will-change:transform;
+    }
+    .slide{ flex:0 0 100%; width:100%; padding:12px; }
+    .slideInner{
+      width:100%;
+      height:520px;
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(255,255,255,.92);
+      border:1px solid rgba(0,0,0,.10);
+    }
+    .slideInner iframe{ width:100%; height:100%; border:0; display:block; }
+
+    .carouselControls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .iconBtn{ width:34px; height:34px; border-radius:10px; padding:0; font-size:18px; line-height:1; }
+    .dots{ display:flex; gap:6px; align-items:center; }
+    .dotBtn{
+      width:9px; height:9px; border-radius:999px;
+      border:1px solid rgba(0,0,0,.20);
+      background:rgba(0,0,0,.08);
+      padding:0;
+    }
+    .dotBtn.active{ background:rgba(37,99,235,.85); border-color:rgba(37,99,235,.85); }
+    .footbar{
+      display:flex;
+      justify-content:space-between;
+      padding:10px 14px 12px;
+      color:rgba(11,15,23,.62);
+      font-size:12px;
+    }
+
+    /* User Menu */
+    .userMenu { position: relative; margin-left: 10px; }
+    .userBtn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .userBtn:hover { background: var(--panel); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .caret { font-size: 10px; opacity: 0.7; }
+
+    /* Dropdown */
+    .userDropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 190px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 6px 0;
+      display: none;
+      z-index: 1000;
+    }
+    .userDropdown a {
+      display: block;
+      padding: 8px 14px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .userDropdown a:hover { background: var(--panel); }
+    .userDropdown .divider { height: 1px; background: var(--line); margin: 6px 0; }
+    .userDropdown .danger { color: var(--bad); }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar" role="navigation" aria-label="Primary">
+    <div class="navwrap">
+      <div class="navLeft">
+        <a href="/" style="text-decoration:none;color:inherit;">
+          <div class="navTitle">
+            <strong>Quantum<span style="font-weight: 100 !important;">Quant</span></strong>
+          </div>
+        </a>
+      </div>
+
+      <div class="navLinks" aria-label="Quick links">
+        <a href="/index.html" class="active"><span>Dashboard</span></a>
+        <a href="/brokers.html">Brokers</a>
+        <a href="/script.html">Strategy</a>
+        <a href="/backtests.html">Backtests</a>
+      </div>
+
+      <div class="navRight">
+        <input class="navSearch" id="nav-search" type="text" placeholder="Filter feed (e.g. quote, trade)" />
+        <span class="pill" id="nav-clock">--:--</span>
+
+        <!-- User Profile -->
+        <div class="userMenu" id="userMenu">
+          <button class="userBtn" id="userBtn" aria-haspopup="true" aria-expanded="false" type="button">
+            <span class="avatar" id="userAvatar">??</span>
+            <span class="caret">▾</span>
+          </button>
+
+          <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
+            <a href="/account.html">Account</a>
+            <a href="/settings.html">Settings</a>
+            <a href="/trades.html">Trade Logs</a>
+            <a href="/security.html">Security</a>
+            <a href="/ideas.html">Ideas</a>
+            <div class="divider"></div>
+            <a href="/help.html">Help</a>
+            <div class="divider"></div>
+            <a href="/login.html" id="loginLink">Log in</a>
+            <a href="/logout" id="logoutLink" class="danger" style="display:none;">Log out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1><span class="logo">⚡</span>Market Screener</h1>
+        <p class="subtitle">
+          Trade-worthy tickers from your<code>.env</code>  file <code>SYMBOLS</code> definition.
+          Grid shows today's top tickers, sorted by <strong>return</strong>.
+        </p>
+      </div>
+
+      <div class="status" title="Data status">
+        <span class="dot" id="ws-dot"></span>
+        <div style="display:flex; flex-direction:column; line-height:1.1;">
+          <strong id="ws-state">Loading…</strong>
+          <span id="ws-detail">Reading session_state</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top: Chart Carousel -->
+    <section class="card carousel" aria-label="Market charts carousel">
+      <div class="hd">
+        <h2>📊 Market Charts</h2>
+        <div class="carouselControls">
+          <button class="iconBtn" type="button" id="chartPrev" aria-label="Previous chart">‹</button>
+          <div class="dots" id="chartDots" aria-label="Chart navigation dots"></div>
+          <button class="iconBtn" type="button" id="chartNext" aria-label="Next chart">›</button>
+          <span class="pill" id="chartLabel">Loading…</span>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="carouselViewport">
+          <div class="carouselTrack" id="chartTrack"></div>
+        </div>
+      </div>
+      <div class="footbar">
+        <small class="kbdHint">Use ← → keys</small>
+        <small id="chartCount">0 / 0</small>
+      </div>
+    </section>
+
+    <div class="grid">
+      <!-- LEFT: Activity Feed -->
+      <section class="card" aria-label="Activity Feed">
+        <div class="hd">
+          <h2>📟 Activity Feed</h2>
+          <span class="pill" id="feedPill">Local</span>
+        </div>
+        <div class="bd">
+          <div class="feed" id="feed">
+            <div class="evt">
+              <div class="meta">
+                <span class="tag">Tip</span>
+                <span id="nowTs">—</span>
+              </div>
+              <pre>
+This page reads:
+  /data_store/session_state/session_state_YYYYMMDD.csv
+
+Make sure you serve your CSV folder at:
+  /data_store
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Watchlist -->
+      <section class="card" aria-label="Watchlist">
+        <div class="hd">
+          <h2>🧾 Watchlist Grid</h2>
+          <span class="pill" id="datePill">—</span>
+        </div>
+
+        <div class="bd">
+          <!-- Top Momentum -->
+          <div class="topMomentum" id="topMomentum" style="display:none;">
+            <div class="tmHead">
+              <div class="tmTitle">📈 Top Long Momentum <span class="pill" id="tmSym">—</span></div>
+              <span class="pill" id="tmMode">Long_only • 5m/30m/1h</span>
+            </div>
+            <div class="tmMeta" id="tmMeta">—</div>
+            <div class="tmGrid">
+              <div class="tmChartWrap"><div id="tmChart"></div></div>
+              <div class="tmStats" id="tmStats"></div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-bottom:12px;">
+            <div>
+              <label>Search</label>
+              <input id="searchSym" placeholder="QQQ, NVDA, AAPL…" />
+            </div>
+            <div style="flex:0 0 140px;">
+              <label>&nbsp;</label>
+              <button class="primary" id="refreshBtn" style="width:100%;">Refresh</button>
+            </div>
+          </div>
+
+          <div class="watchStatus" id="watchStatus">—</div>
+          <div class="watchGrid" id="watchlistGrid"></div>
+
+          <div class="hint">
+            Data path: <code>/data_store/session_state/session_state_YYYYMMDD.csv</code> (NY date).<br/>
+            Optional: define a watchlist via <code>window.WATCHLIST = "QQQ,NVDA,AAPL"</code>.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // ===== Config =====
+    const DATA_ROOT = "/data_store";
+
+    // Optional watchlist:
+    // window.WATCHLIST = "QQQ,NVDA,AAPL,TQQQ,IONQ,QBTS";
+    const WATCHLIST = (window.WATCHLIST ?? "")
+      ? (Array.isArray(window.WATCHLIST) ? window.WATCHLIST : String(window.WATCHLIST).split(","))
+          .map(s => s.trim().toUpperCase())
+          .filter(Boolean)
+      : null;
+
+    // ===== Helpers =====
+    function nyDateYYYYMMDD() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/New_York",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date()).replaceAll("-", "");
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i + 1];
+
+        if (c === '"' && inQuotes && next === '"') { cell += '"'; i++; }
+        else if (c === '"') { inQuotes = !inQuotes; }
+        else if (c === "," && !inQuotes) { row.push(cell); cell = ""; }
+        else if (c === "\n" && !inQuotes) { row.push(cell); rows.push(row); row = []; cell = ""; }
+        else if (c !== "\r") { cell += c; }
+      }
+      if (cell.length || row.length) { row.push(cell); rows.push(row); }
+      return rows.filter(r => r.some(v => String(v).trim() !== ""));
+    }
+
+    function rowsToObjects(rows) {
+      if (!rows.length) return [];
+      const header = rows[0].map(h => String(h).trim());
+      return rows.slice(1).map(cols => {
+        const o = {};
+        header.forEach((h, i) => (o[h] = cols[i] ?? ""));
+        return o;
+      });
+      }
+
+    function latestBySymbol(objs) {
+      const map = new Map();
+      for (const r of objs) {
+        const sym = String(r.symbol || "").toUpperCase();
+        if (!sym) continue;
+        map.set(sym, r); // last row wins
+      }
+      return map;
+    }
+
+    function n(x, fallback = NaN) {
+      const v = Number(x);
+      return Number.isFinite(v) ? v : fallback;
+    }
+
+    function fmtPct(x) {
+      if (!Number.isFinite(x)) return "—";
+      const sign = x > 0 ? "+" : "";
+      return `${sign}${x.toFixed(2)}%`;
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function nowLocal(){ return new Date().toLocaleString(); }
+
+    // ===== Feed =====
+    function pushFeedEvent({ tag = "INFO", text = "" }) {
+      const feed = document.getElementById("feed");
+      if (!feed) return;
+
+      const evt = document.createElement("div");
+      evt.className = "evt";
+      evt.innerHTML = `
+        <div class="meta">
+          <span class="tag">${escapeHtml(tag)}</span>
+          <span>${escapeHtml(nowLocal())}</span>
+        </div>
+        <pre>${escapeHtml(text)}</pre>
+      `;
+
+      feed.prepend(evt);
+      while (feed.children.length > 30) feed.removeChild(feed.lastChild);
+    }
+
+    // ✅ Dedup feed lines: only emit when state/reason/score/bias changes
+    const FEED_LAST = new Map(); // sym -> signature
+    function emitFeedFromRows(rows) {
+      if (!rows.length) return;
+      const header = rows[0];
+      const idx = Object.fromEntries(header.map((h, i) => [String(h), i]));
+
+      rows.slice(1).forEach(r => {
+        const sym   = String(r[idx.symbol] || "").toUpperCase();
+        const state = String(r[idx.state] || "");
+        const score = String(r[idx.score] || "");
+        const bias  = String(r[idx.bias] || "");
+        const why   = String(r[idx.reason] || "");
+
+        if (!sym || !state) return;
+
+        // keep these tags only (same behavior as before)
+        if (state !== "CONFIRMED" && state !== "RECONSIDER") return;
+
+        const sig = `${state}|${score}|${bias}|${why}`;
+        if (FEED_LAST.get(sym) === sig) return;
+        FEED_LAST.set(sym, sig);
+
+        pushFeedEvent({
+          tag: state,
+          text: `${sym}\nstate=${state}\nscore=${score}\nbias=${bias}\n\n${why || ""}`
+        });
+      });
+    }
+
+    // ===== UI bits =====
+    function tileHTML(sym, r) {
+      const state = String(r.state || "—").toUpperCase();
+      const score = n(r.score);
+      const risk  = n(r.risk_mult);
+      const flips = n(r.flip_count, 0);
+
+      const v5  = n(r.vwap_dist_5m);
+      const v15 = n(r.vwap_dist_15m);
+      const v30 = n(r.vwap_dist_30m);
+      const v1h = n(r.vwap_dist_1h);
+
+      const reason = r.reason || "";
+
+      return `
+        <div class="watchTile" data-sym="${escapeHtml(sym)}">
+          <div class="watchHead">
+            <div class="watchSym">${escapeHtml(sym)}</div>
+            <div class="stateBadge ${escapeHtml(state)}">${escapeHtml(state)}</div>
+          </div>
+
+          <div class="kvRow">
+            <span><span class="k">score</span> <span class="v">${Number.isFinite(score) ? score.toFixed(3) : "—"}</span></span>
+            <span><span class="k">bias</span> <span class="v">${escapeHtml(r.bias || "—")}</span></span>
+            <span><span class="k">risk</span> <span class="v">${Number.isFinite(risk) ? risk.toFixed(2) : "—"}</span></span>
+            <span><span class="k">flips</span> <span class="v">${flips}</span></span>
+          </div>
+
+          <div class="vwapRow">
+            <div class="vpill">5m ${fmtPct(v5)}</div>
+            <div class="vpill">15m ${fmtPct(v15)}</div>
+            <div class="vpill">30m ${fmtPct(v30)}</div>
+            <div class="vpill">1h ${fmtPct(v1h)}</div>
+          </div>
+
+          <div class="reasonLine" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>
+        </div>
+      `;
+    }
+
+    function isLongOnly(r) {
+      const b = String(r.bias || "").trim().toLowerCase();
+      return b === "long_only" || b === "long-only" || b === "long only" || b === "long";
+    }
+
+    function isSuspended(r){
+      return String(r?.state || "").trim().toUpperCase() === "SUSPENDED";
+    }
+
+    function setStatus(ok, title, detail) {
+      const dot = document.getElementById("ws-dot");
+      const state = document.getElementById("ws-state");
+      const det = document.getElementById("ws-detail");
+
+      if (dot) {
+        dot.style.background = ok ? "var(--good)" : "var(--bad)";
+        dot.style.boxShadow = ok
+          ? "0 0 0 4px rgba(52,211,153,.18)"
+          : "0 0 0 4px rgba(251,113,133,.18)";
+      }
+      if (state) state.textContent = title;
+      if (det) det.textContent = detail;
+    }
+
+    function bestFromFirstGrid(gridItems){
+      if (!gridItems || !gridItems.length) return null;
+
+      const { sym, r } = gridItems[0];
+
+      const p5  = n(r.vwap_dist_5m);
+      const p30 = n(r.vwap_dist_30m);
+      const p1h = n(r.vwap_dist_1h);
+
+      return {
+        sym,
+        r,
+        p5,
+        p30,
+        p1h,
+        score: [p5, p30, p1h].filter(Number.isFinite).reduce((a,b)=>a+b, 0),
+      };
+    }
+
+    function sparklineSVG(values, { w = 520, h = 140, pad = 12 } = {}) {
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const span = (max - min) || 1;
+      const xStep = (w - pad*2) / (values.length - 1 || 1);
+
+      const pts = values.map((v, i) => {
+        const x = pad + i * xStep;
+        const y = pad + (h - pad*2) * (1 - ((v - min) / span));
+        return [x, y];
+      });
+
+      const d = pts.map(([x,y], i) => (i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`)).join(" ");
+
+      let zeroY = null;
+      if (min <= 0 && max >= 0) zeroY = pad + (h - pad*2) * (1 - ((0 - min) / span));
+
+      return `
+        <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Momentum sparkline">
+          <rect x="0" y="0" width="${w}" height="${h}" rx="14" ry="14" fill="rgba(0,0,0,.02)"></rect>
+          ${zeroY !== null ? `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="rgba(0,0,0,.15)" stroke-dasharray="6 6" />` : ""}
+          <path d="${d}" fill="none" stroke="rgba(37,99,235,.95)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+          ${pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.2" fill="rgba(37,99,235,.95)"></circle>`).join("")}
+          <text x="${pad}" y="${h - 10}" font-size="12" fill="rgba(11,15,23,.65)">5m</text>
+          <text x="${w/2}" y="${h - 10}" font-size="12" text-anchor="middle" fill="rgba(11,15,23,.65)">30m</text>
+          <text x="${w-pad}" y="${h - 10}" font-size="12" text-anchor="end" fill="rgba(11,15,23,.65)">1h</text>
+        </svg>`;
+    }
+
+    function renderTopMomentumCard(best, modeLabel = "grid-first") {
+      const wrap = document.getElementById("topMomentum");
+      const tmSym = document.getElementById("tmSym");
+      const tmMeta = document.getElementById("tmMeta");
+      const tmChart = document.getElementById("tmChart");
+      const tmStats = document.getElementById("tmStats");
+      if (!wrap || !tmSym || !tmMeta || !tmChart || !tmStats) return;
+
+      if (!best) { wrap.style.display = "none"; return; }
+
+      wrap.style.display = "";
+      tmSym.textContent = best.sym;
+      tmMeta.textContent =
+        `Composite(${modeLabel})=${best.score.toFixed(2)} • 5m ${fmtPct(best.p5)} • 30m ${fmtPct(best.p30)} • 1h ${fmtPct(best.p1h)}`;
+
+      tmChart.innerHTML = sparklineSVG([best.p5, best.p30, best.p1h], { h: 150 });
+
+      tmStats.innerHTML = `
+        <div class="r"><span class="k">Symbol</span><span class="v">${escapeHtml(best.sym)}</span></div>
+        <div class="r"><span class="k">Bias</span><span class="v">${escapeHtml(best.r.bias || "—")}</span></div>
+        <div class="r"><span class="k">State</span><span class="v">${escapeHtml(best.r.state || "—")}</span></div>
+        <div class="r"><span class="k">Score</span><span class="v">${Number.isFinite(n(best.r.score)) ? n(best.r.score).toFixed(3) : "—"}</span></div>
+        <div class="r"><span class="k">5m</span><span class="v">${fmtPct(best.p5)}</span></div>
+        <div class="r"><span class="k">30m</span><span class="v">${fmtPct(best.p30)}</span></div>
+        <div class="r"><span class="k">1h</span><span class="v">${fmtPct(best.p1h)}</span></div>
+      `;
+    }
+
+    // ===== TradingView Carousel =====
+    const chartTrack = document.getElementById("chartTrack");
+    const chartDots  = document.getElementById("chartDots");
+    const chartPrev  = document.getElementById("chartPrev");
+    const chartNext  = document.getElementById("chartNext");
+    const chartLabel = document.getElementById("chartLabel");
+    const chartCount = document.getElementById("chartCount");
+
+    let charts = [];
+    let chartIndex = 0;
+    let lastChartsKey = "";
+
+    function tvSrc(symbol){
+      const params = new URLSearchParams({
+        symbol,
+        interval: "5",
+        hidesidetoolbar: "1",
+        symboledit: "0",
+        saveimage: "0",
+        toolbarbg: "#0b1220",
+        studies: "[]",
+        theme: "dark",
+        style: "1",
+        timezone: "Etc/UTC",
+        withdateranges: "1",
+        hidevolume: "0",
+        hidelegend: "0",
+        enable_publishing: "0",
+      });
+      return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+    }
+
+    function goTo(i){
+      if (!charts.length) return;
+      chartIndex = (i + charts.length) % charts.length;
+      updateCarousel();
+    }
+
+    function updateCarousel(){
+      if (!chartTrack || !chartDots) return;
+
+      if (!charts.length){
+        if (chartLabel) chartLabel.textContent = "—";
+        if (chartCount) chartCount.textContent = "0 / 0";
+        return;
+      }
+
+      chartTrack.style.transform = `translateX(-${chartIndex * 100}%)`;
+      [...chartDots.children].forEach((d, i) => d.classList.toggle("active", i === chartIndex));
+
+      const cur = charts[chartIndex];
+      if (chartLabel) chartLabel.textContent = `${cur.name} • ${cur.symbol}`;
+      if (chartCount) chartCount.textContent = `${chartIndex + 1} / ${charts.length}`;
+    }
+
+    function renderCarousel(){
+      if (!chartTrack || !chartDots) return;
+
+      chartTrack.innerHTML = "";
+      chartDots.innerHTML = "";
+
+      if (!charts.length){
+        chartTrack.innerHTML = `
+          <div class="slide">
+            <div class="slideInner" style="display:flex;align-items:center;justify-content:center;">
+              <span class="pill">No LONG_ONLY tickers with +15m yet</span>
+            </div>
+          </div>`;
+        updateCarousel();
+        return;
+      }
+
+      charts.forEach((c, i) => {
+        const slide = document.createElement("div");
+        slide.className = "slide";
+        slide.setAttribute("role", "group");
+        slide.setAttribute("aria-label", `${i+1} of ${charts.length}: ${c.name}`);
+
+        const inner = document.createElement("div");
+        inner.className = "slideInner";
+
+        const iframe = document.createElement("iframe");
+        iframe.loading = "lazy";
+        iframe.title = `${c.name} chart`;
+        iframe.allowFullscreen = true;
+        iframe.src = tvSrc(c.symbol);
+
+        inner.appendChild(iframe);
+        slide.appendChild(inner);
+        chartTrack.appendChild(slide);
+
+        const dot = document.createElement("button");
+        dot.className = "dotBtn";
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Go to ${c.name}`);
+        dot.addEventListener("click", () => goTo(i));
+        chartDots.appendChild(dot);
+      });
+
+      updateCarousel();
+    }
+
+    function syncCarouselFromGridItems(gridItems){
+      const next = gridItems.map(({ sym }) => ({ name: sym, symbol: sym }));
+      const key = next.map(x => x.symbol).join("|");
+      if (key === lastChartsKey) return;
+
+      const keepSym = charts[chartIndex]?.symbol;
+      charts = next;
+      lastChartsKey = key;
+
+      if (charts.length){
+        const keepIdx = keepSym ? charts.findIndex(c => c.symbol === keepSym) : -1;
+        chartIndex = keepIdx >= 0 ? keepIdx : 0;
+      } else chartIndex = 0;
+
+      renderCarousel();
+    }
+
+    chartPrev?.addEventListener("click", () => goTo(chartIndex - 1));
+    chartNext?.addEventListener("click", () => goTo(chartIndex + 1));
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") goTo(chartIndex - 1);
+      if (e.key === "ArrowRight") goTo(chartIndex + 1);
+    });
+
+    // ===== Main refresh =====
+    async function refreshWatchlist() {
+      const date = nyDateYYYYMMDD();
+      const datePill = document.getElementById("datePill");
+      if (datePill) datePill.textContent = `NY ${date}`;
+
+      const url = `${DATA_ROOT}/session_state/session_state_${date}.csv`;
+      const gridEl = document.getElementById("watchlistGrid");
+      const watchStatus = document.getElementById("watchStatus");
+      if (!gridEl) return;
+
+      try {
+        setStatus(false, "Loading…", `Fetching ${url}`);
+        const resp = await fetch(url, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+
+        const text = await resp.text();
+        const rows = parseCSV(text);
+        const objs = rowsToObjects(rows);
+        const latest = latestBySymbol(objs);
+
+        const itemsAll = Array.from(latest.entries()).map(([sym, r]) => ({ sym, r }));
+        const total = itemsAll.length;
+
+        const ts = document.getElementById("nowTs");
+        if (ts) ts.textContent = nowLocal();
+
+        emitFeedFromRows(rows);
+
+        // Grid rules:
+        // LONG_ONLY + positive 15m, sorted 15m desc; optional WATCHLIST; optional search
+        const q = (document.getElementById("searchSym")?.value || "").trim().toUpperCase();
+
+        let gridItems = itemsAll.filter(({ sym, r }) => {
+          if (WATCHLIST && !WATCHLIST.includes(sym)) return false;
+          if (!isLongOnly(r)) return false;
+
+          if (isSuspended(r)) return false;
+
+          const p15 = n(r.vwap_dist_15m);
+          if (!Number.isFinite(p15) || p15 <= 0) return false;
+
+          if (q && !sym.includes(q)) return false;
+          return true;
+        });
+
+        gridItems.sort((a, b) => n(b.r.vwap_dist_15m) - n(a.r.vwap_dist_15m));
+
+        // Render grid
+        gridEl.innerHTML = gridItems.map(({ sym, r }) => tileHTML(sym, r)).join("");
+
+        // Top momentum = first grid item
+        const best = bestFromFirstGrid(gridItems);
+        renderTopMomentumCard(best, "grid-first");
+
+        // Carousel = same tickers as grid
+        syncCarouselFromGridItems(gridItems);
+
+        if (gridItems.length) {
+          chartIndex = 0;
+          updateCarousel();
+        }
+
+        if (watchStatus) {
+          watchStatus.textContent = `symbols=${total} | showing=${gridItems.length} | updated ${new Date().toLocaleTimeString()}`;
+        }
+
+        setStatus(true, "Loaded", `OK • ${gridItems.length} tiles`);
+      } catch (err) {
+        console.error(err);
+        if (watchStatus) watchStatus.textContent = `Error loading watchlist: ${err?.message || err}`;
+        setStatus(false, "Error", err?.message || String(err));
+      }
+    }
+
+    // ===== Navbar clock + feed filter =====
+    const navClock = document.getElementById("nav-clock");
+    const navSearch = document.getElementById("nav-search");
+
+    function tickClock(){
+      const t = new Date().toLocaleTimeString();
+      if (navClock) navClock.textContent = t;
+    }
+    setInterval(tickClock, 1000);
+    tickClock();
+
+    if (navSearch){
+      navSearch.addEventListener("input", () => {
+        const feed = document.getElementById("feed");
+        if (!feed) return;
+
+        const q = (navSearch.value || "").trim().toLowerCase();
+        feed.querySelectorAll(".evt").forEach(evt => {
+          const txt = (evt.textContent || "").toLowerCase();
+          evt.style.display = (!q || txt.includes(q)) ? "" : "none";
+        });
+      });
+    }
+
+    // ===== Events =====
+    document.getElementById("refreshBtn")?.addEventListener("click", refreshWatchlist);
+    document.getElementById("searchSym")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") refreshWatchlist();
+    });
+
+    // initial load
+    refreshWatchlist();
+  </script>
+
+  <!-- ✅ User menu + avatar hydration (applied) -->
+  <script>
+    function hydrateUserAvatar() {
+      const avatar = document.getElementById("userAvatar");
+      const loginLink = document.getElementById("loginLink");
+      const logoutLink = document.getElementById("logoutLink");
+
+      const raw =
+        localStorage.getItem("qq_user") ||
+        sessionStorage.getItem("qq_user");
+
+      if (!raw) {
+        if (avatar) avatar.textContent = "??";
+        if (loginLink) loginLink.style.display = "block";
+        if (logoutLink) logoutLink.style.display = "none";
+        return;
+      }
+
+      try {
+        const user = JSON.parse(raw);
+        const initials = String(user?.initials || "??").toUpperCase();
+
+        if (avatar) avatar.textContent = initials.length ? initials.slice(0, 2) : "??";
+        if (loginLink) loginLink.style.display = "none";
+        if (logoutLink) logoutLink.style.display = "block";
+      } catch (e) {
+        console.warn("Invalid qq_user in storage", e);
+        if (avatar) avatar.textContent = "??";
+        if (loginLink) loginLink.style.display = "block";
+        if (logoutLink) logoutLink.style.display = "none";
+      }
+    }
+
+    // Dropdown behavior (your existing logic, made safe)
+    (function initUserDropdown(){
+      const userBtn = document.getElementById("userBtn");
+      const userDropdown = document.getElementById("userDropdown");
+      if (!userBtn || !userDropdown) return;
+
+      userBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = userDropdown.style.display === "block";
+        userDropdown.style.display = open ? "none" : "block";
+        userBtn.setAttribute("aria-expanded", String(!open));
+      });
+
+      document.addEventListener("click", () => {
+        userDropdown.style.display = "none";
+        userBtn.setAttribute("aria-expanded", "false");
+      });
+    })();
+
+    // Logout clears storage + redirects
+    document.getElementById("logoutLink")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem("qq_token");
+      localStorage.removeItem("qq_user");
+      sessionStorage.removeItem("qq_token");
+      sessionStorage.removeItem("qq_user");
+      window.location.href = "/login.html";
+    });
+
+    // run on load
+    hydrateUserAvatar();
+  </script>
+
+</body>
+</html>

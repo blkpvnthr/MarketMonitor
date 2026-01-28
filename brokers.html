@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoBot • Watchlist</title>
+
+  <link rel="stylesheet" href="/includes/CSS/styles.css"/>
+  <link rel="icon" type="image/x-icon" href="../static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+  :root{
+    --bg:#ffffff;
+    --panel: rgba(0,0,0,.03);
+    --panel2: rgba(0,0,0,.05);
+    --text:#0b0f17;
+    --muted: rgba(11,15,23,.62);
+    --line: rgba(0,0,0,.12);
+    --accent:#2563eb;
+    --good:#16a34a;
+    --warn:#d97706;
+    --bad:#dc2626;
+    --shadow:0 14px 40px rgba(0,0,0,.10);
+    --radius:16px;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    color:var(--text);
+    background: var(--bg);
+    min-height:100vh;
+  }
+
+  .wrap{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom: 18px;
+  }
+
+  .title{
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: .2px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+
+  .search{
+    width: min(420px, 55vw);
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--text);
+    outline:none;
+  }
+  .search:focus{
+    border-color: rgba(37,99,235,.35);
+    box-shadow: 0 0 0 4px rgba(99,102,241,.14);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+
+  @media (max-width: 1200px){
+    .grid{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 680px){
+    .topbar{ flex-direction: column; align-items: stretch; }
+    .search{ width: 100%; }
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  .card{
+    position:relative;
+    overflow:hidden;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: #ffffff;
+    box-shadow: var(--shadow);
+    padding: 18px;
+    display:flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 280px;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  }
+
+  .card:hover{
+    transform: translateY(-4px);
+    background: #ffffff;
+    border-color: rgba(0,0,0,.18);
+  }
+
+  .card::before{
+    content:"";
+    position:absolute;
+    inset:-220px -260px auto auto;
+    width: 520px;
+    height: 520px;
+    background: radial-gradient(circle at 30% 30%, rgba(37,99,235,.10), transparent 55%);
+    transform: rotate(12deg);
+    pointer-events:none;
+    opacity:.55;
+  }
+
+  .logoArea{
+    z-index:1;
+    display:flex;
+    justify-content:flex-start;
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+
+  .tileStack{
+    position:relative;
+    width: 96px;
+    height: 96px;
+  }
+
+  .tile{
+    position:absolute;
+    inset:0;
+    border-radius: 22px;
+    background: rgba(0,0,0,.03);
+    border: 1px solid rgba(0,0,0,.08);
+    box-shadow: 0 18px 60px rgba(0,0,0,.14);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .tile.back1{ transform: translate(8px, 6px) rotate(6deg); opacity:.35; }
+  .tile.back2{ transform: translate(14px, 12px) rotate(12deg); opacity:.18; }
+
+  .logoInner{
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 950;
+    letter-spacing: .6px;
+    font-size: 28px;
+    color: var(--text);
+    background: rgba(0,0,0,.03);
+    border: 1px solid rgba(0,0,0,.08);
+  }
+
+  .logoInner img{
+    width: 78%;
+    height: 78%;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,.18));
+  }
+
+  .left{
+    z-index: 1;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .nameRow{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .name{
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    line-height: 1.15;
+  }
+
+  .badge{
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,0,0,.12);
+    background: rgba(0,0,0,.04);
+    color: rgba(11,15,23,.82);
+    letter-spacing: .2px;
+    text-transform: uppercase;
+  }
+
+  .sub{
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .meta{
+    display:flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: rgba(11,15,23,.78);
+    align-items:center;
+  }
+
+  .stars{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-weight: 800;
+  }
+
+  .starRow{
+    letter-spacing: 1px;
+    opacity: .92;
+    font-size: 12px;
+  }
+
+  .dot{
+    width: 5px;
+    height: 5px;
+    border-radius: 99px;
+    background: rgba(0,0,0,.18);
+  }
+
+  .ctaRow{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn{
+    cursor:pointer;
+    border: 1px solid rgba(0,0,0,.14);
+    background: #ffffff;
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-weight: 800;
+    letter-spacing:.2px;
+    transition: .15s ease;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+  }
+  .btn:hover{ transform: translateY(-1px); background: rgba(0,0,0,.03); }
+
+  .btn.primary{
+    border-color: rgba(37,99,235,.28);
+    background: rgba(37,99,235,.06);
+  }
+
+  .btn[aria-busy="true"]{
+    opacity:.65;
+    pointer-events:none;
+  }
+
+  .hint{
+    margin-top: 10px;
+    color: rgba(11,15,23,.55);
+    font-size: 12px;
+  }
+
+    /* ===== Glass Navbar ===== */
+    .navbar{
+      position:sticky; top:0; z-index:50;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.85);
+      backdrop-filter:blur(10px);
+    }
+    .navbar .navwrap{
+      margin:0 auto;
+      padding:12px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .navwrap{
+      max-width:1600px;
+    }
+    .navLinks{ display:flex; align-items:center; gap:16px; }
+    .navLinks a{ padding:6px 10px; border-radius:10px; }
+    a{ color:#0b0f17 !important; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{ max-width:1200px; margin:0 auto; padding:22px 18px 42px; }
+/* --- NAVBAR: bulletproof 3-column layout --- */
+.navwrap{
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 10px 16px;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* left | center | right */
+  align-items: center;
+  column-gap: 18px;
+}
+
+/* Left */
+.navLeft{
+  min-width: 0;
+}
+.navTitle{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;      /* keep brand on one line */
+}
+
+/* Center */
+.navLinks{
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  min-width: 0;
+}
+.navLinks a{
+  white-space: nowrap;
+}
+
+/* Right */
+.navRight{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+.navSearch{
+  width: min(420px, 34vw);
+  min-width: 260px;
+}
+
+
+/* Left: brand */
+.navLeft{
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+/* Middle: links centered (don’t hide them) */
+.navLinks{
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  overflow: visible;       /* IMPORTANT: don’t clip links */
+  min-width: 0;
+}
+
+.navLinks a{
+  white-space: nowrap;
+}
+
+/* Right: search + clock + profile pinned right */
+.navRight{
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+  min-width: max-content;
+}
+
+.navSearch{
+  width: min(420px, 34vw);
+  min-width: 260px;
+}
+
+  /* Dropdown */
+  .userDropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 190px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 6px 0;
+    display: none;
+    z-index: 1000;
+  }
+
+  .userDropdown a {
+    display: block;
+    padding: 8px 14px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .userDropdown a:hover {
+    background: var(--panel);
+  }
+
+  .userDropdown .divider {
+    height: 1px;
+    background: var(--line);
+    margin: 6px 0;
+  }
+
+  .userDropdown .danger {
+    color: var(--bad);
+  }
+  .navLinks a.active{
+  text-decoration: underline;
+}
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+<!-- Navbar -->
+<nav class="navbar" role="navigation" aria-label="Primary">
+  <div class="navwrap">
+    <div class="navLeft">
+      <a href="/" style="text-decoration:none;color:inherit;">
+        <div class="navTitle">
+          <strong>Quantum<span style="font-weight: 100 !important;">Quant</span></strong>
+        </div>
+      </a>
+    </div>
+
+    <div class="navLinks" aria-label="Quick links">
+      <a href="/index.html"><span>Dashboard</span></a>
+      <a href="/brokers.html" class="active">Brokers</a>
+      <a href="/script.html">Strategy</a>
+      <a href="/backtests.html">Backtests</a>
+    </div>
+
+    <div class="navRight">
+      <input class="navSearch" id="nav-search" type="text" placeholder="Filter feed (e.g. quote, trade)" />
+      <span class="pill" id="nav-clock">--:--</span>
+
+      <!-- User Profile -->
+      <div class="userMenu" id="userMenu">
+        <button class="userBtn" id="userBtn" aria-haspopup="true" aria-expanded="false" type="button">
+          <span class="avatar" id="userAvatar">AQ</span>
+          <span class="caret">▾</span>
+        </button>
+
+        <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
+          <a href="/account.html">Account</a>
+          <a href="/settings.html">Settings</a>
+          <a href="/trades.html">Trade Logs</a>
+          <a href="/security.html">Security</a>
+          <a href="/ideas.html">Ideas</a>
+          <div class="divider"></div>
+          <a href="/help.html">Help</a>
+          <div class="divider"></div>
+          <a href="/login.html" id="loginLink">Log in</a>
+          <a href="/logout" id="logoutLink" class="danger" style="display:none;">Log out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">Connect to a broker</div>
+      <input id="q" class="search" placeholder="Search brokers…" />
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div class="hint">
+      Tip: add real logos by setting <code>logoUrl</code> to a local path
+      (e.g. <code>/images/icons/fidelity-icon.jpeg</code>).
+    </div>
+  </div>
+<script>
+  const userBtn = document.getElementById("userBtn");
+  const userDropdown = document.getElementById("userDropdown");
+
+  userBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = userDropdown.style.display === "block";
+    userDropdown.style.display = open ? "none" : "block";
+    userBtn.setAttribute("aria-expanded", String(!open));
+  });
+
+  document.addEventListener("click", () => {
+    userDropdown.style.display = "none";
+    userBtn.setAttribute("aria-expanded", "false");
+  });
+</script>
+  <script>
+    // -------------------------
+    // Brokers (single source)
+    // -------------------------
+    const brokers = [
+      {
+        id: "alpaca",
+        name: "Alpaca",
+        tier: "Platinum",
+        assets: "Stocks, ETFs, Crypto",
+        rating: 5.0,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Developer-friendly brokerage API for automated trading, paper/live environments, and streaming data.",
+        cta: { label: "Learn more", href: "https://alpaca.markets/algotrading", target: "_blank" },
+        logoText: "A",
+        logoUrl: "/images/icons/alpaca.png",
+        connect: { type: "link", href: "/settings/alpaca" } // <-- change to your flow
+      },
+      {
+        id: "quantconnect",
+        name: "QuantConnect",
+        tier: "Platinum",
+        assets: "Stocks, ETFs, Options, Mutual Funds",
+        rating: 4.7,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Unified API for research, backtesting, and live trading on a leading algorithmic platform.",
+        cta: { label: "Learn more", href: "https://www.quantconnect.com/", target: "_blank" },
+        logoText: "QC",
+        logoUrl: "/images/icons/quantconnect.png",
+        connect: { type: "link", href: "/settings/quantconnect" } // <-- change to your flow
+      },
+      {
+        id: "tradestation",
+        name: "TradeStation",
+        tier: "Platinum",
+        assets: "Stocks, Futures, Options",
+        rating: 4.6,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Advanced platform with strong tooling for active traders and system builders. 10K Balance Required.",
+        cta: { label: "Learn more", href: "https://www.tradestation.com/platforms-and-tools/trading-api/", target: "_blank" },
+        logoText: "TS",
+        logoUrl: "/images/icons/tradestation.png",
+        connect: { type: "link", href: "/settings/tradestation" } // <-- change to your flow
+      },
+      {
+        id: "ibkr",
+        name: "Interactive Brokers",
+        tier: "Platinum",
+        assets: "Stocks, Options, Futures, FX, Bonds",
+        rating: 4.6,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Professional-grade execution and broad market access with powerful tooling.",
+        cta: { label: "Learn more", href: "https://www.interactivebrokers.com/en/trading/ib-api.php", target: "_blank" },
+        logoText: "IB",
+        logoUrl: "/images/icons/ib.png",
+        connect: { type: "snaptrade", brokerSlug: "interactive_brokers" } // <-- slug depends on your backend mapping
+      },
+      {
+        id: "schwab",
+        name: "Think or Swim",
+        tier: "Platinum",
+        assets: "Stocks, ETFs, Options, Mutual Funds, Bonds",
+        rating: 4.5,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Broad platform with solid investor education, banking integration, and a popular trading experience.",
+        cta: { label: "Learn more", href: "https://pypi.org/project/schwab-py/", target: "_blank" },
+        logoText: "S",
+        logoUrl: "/images/icons/schwab.png",
+        connect: { type: "oauth", href: "/oauth/schwab/start" } // <-- change to your flow
+      },
+      {
+        id: "fidelity",
+        name: "Fidelity",
+        tier: "Gold",
+        assets: "Stocks, ETFs, Options, Mutual Funds",
+        rating: 4.2,
+        reviews: "—",
+        accounts: "—",
+        blurb: "API through SnapTrade. Full-service brokerage with strong research tools and a wide lineup.",
+        cta: { label: "Learn more", href: "https://snaptrade.com/brokerage-integrations/fidelity-api", target: "_blank" },
+        logoText: "F",
+        logoUrl: "/images/icons/fidelity.png",
+        connect: { type: "snaptrade", brokerSlug: "fidelity" }
+      },
+      {
+        id: "webull",
+        name: "Webull",
+        tier: "Gold",
+        assets: "Stocks, ETFs, Options",
+        rating: 3.9,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Feature-rich charts and tools with a community-oriented trading experience.",
+        cta: { label: "Learn more", href: "https://developer.webull.com/", target: "_blank" },
+        logoText: "W",
+        logoUrl: "/images/icons/webull.png",
+        connect: { type: "link", href: "/settings/webull" } // <-- change to your flow
+      },
+      {
+        id: "vanguard",
+        name: "Vanguard",
+        tier: "Gold",
+        assets: "Funds, ETFs, Stocks, Bonds",
+        rating: 3.5,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Best known for long-term investing and low-cost index funds and ETFs.",
+        cta: { label: "Learn more", href: "https://api-docs.vanguardapp.io/", target: "_blank" },
+        logoText: "V",
+        logoUrl: "/images/icons/vanguard2.png",
+        connect: { type: "snaptrade", brokerSlug: "vanguard" } // or link if you don’t support it
+      },
+      {
+        id: "snaptrade",
+        name: "SnapTrade",
+        tier: "Silver",
+        assets: "Stocks, ETFs, Options, Mutual Funds",
+        rating: 3.4,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Connect many brokerages (including Fidelity) through a single integration.",
+        cta: { label: "Learn more", href: "https://docs.snaptrade.com/demo/getting-started", target: "_blank" },
+        logoText: "ST",
+        logoUrl: "/images/icons/snaptrade.png",
+        connect: { type: "snaptrade", brokerSlug: null } // open portal with all supported brokers
+      },{
+        id: "tradier",
+        name: "Tradier",
+        tier: "Silver",
+        assets: "Stocks, ETFs, Options, Mutual Funds",
+        rating: 3.3,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Low-latency execution. Real-time data. Trusted by developers who trade.",
+        cta: { label: "Learn more", href: "https://trade.tradier.com/buildntrade/", target: "_blank" },
+        logoText: "TR",
+        logoUrl: "/images/icons/tradier.png",
+        connect: { type: "link", href: "/settings/tradier" } // <-- change to your flow
+      }
+      /*{
+        id: "robinhood",
+        name: "Robinhood",
+        tier: "Silver",
+        assets: "Crypto Only",
+        rating: 3.1,
+        reviews: "—",
+        accounts: "—",
+        blurb: "Mobile-first brokerage designed for quick access and simplicity.",
+        cta: { label: "Learn more", href: "https://robinhood.com/us/en/support/articles/crypto-api/", target: "_blank" },
+        logoText: "RH",
+        logoUrl: "/images/icons/robinhood.png",
+        connect: { type: "link", href: "/settings/robinhood" } // <-- change to your flow
+      }*/
+    ];
+
+    function stars(rating) {
+      const full = Math.floor(rating);
+      const half = rating - full >= 0.5 ? 1 : 0;
+      const empty = 5 - full - half;
+      return "★".repeat(full) + (half ? "★" : "") + "☆".repeat(empty);
+    }
+
+    function esc(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // -----------------------------
+    // SnapTrade popup connect flow
+    // -----------------------------
+    async function getSnapTradeLoginLink({ brokerSlug = null, immediateRedirect = true } = {}) {
+      const resp = await fetch("/api/snaptrade/connect-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broker: brokerSlug, immediateRedirect })
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      if (!data?.url) throw new Error("SnapTrade connect-link response missing { url }");
+      return data.url;
+    }
+
+    function parseSnapTradeMessage(data) {
+      if (!data) return null;
+      if (typeof data === "object" && data.status) return data;
+      if (typeof data === "string") {
+        if (data.startsWith("SUCCESS:")) return { status: "SUCCESS", authorizationId: data.split(":")[1] || "" };
+        if (data.startsWith("ERROR:")) {
+          const parts = data.split(":");
+          return { status: "ERROR", statusCode: parts[1] || "", detail: "Connection error" };
+        }
+        if (data === "ABANDONED") return { status: "ABANDONED" };
+      }
+      return null;
+    }
+
+    function openCenteredPopup(url, name = "snaptrade_connect", w = 460, h = 720) {
+      const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - w) / 2));
+      const top  = Math.max(0, Math.round(window.screenY + (window.outerHeight - h) / 2));
+      const features = `popup=yes,width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+      const win = window.open(url, name, features);
+      if (!win) throw new Error("Popup blocked. Please allow popups for this site.");
+      try { win.focus(); } catch {}
+      return win;
+    }
+
+    function connectSnapTradePopup({ brokerSlug = null } = {}) {
+      return new Promise(async (resolve, reject) => {
+        let popup = null;
+
+        let loginLink;
+        try {
+          loginLink = await getSnapTradeLoginLink({ brokerSlug, immediateRedirect: true });
+        } catch (e) {
+          reject(e);
+          return;
+        }
+
+        try {
+          popup = openCenteredPopup(loginLink);
+        } catch (e) {
+          reject(e);
+          return;
+        }
+
+        const onMessage = (e) => {
+          const msg = parseSnapTradeMessage(e.data);
+          if (!msg) return;
+
+          if (msg.status === "SUCCESS") {
+            cleanup();
+            safeClose();
+            resolve(msg.authorizationId);
+            return;
+          }
+          if (msg.status === "ERROR") {
+            cleanup();
+            safeClose();
+            reject(new Error(msg.detail || msg.errorCode || msg.statusCode || "SnapTrade connection error"));
+            return;
+          }
+          if (msg.status === "ABANDONED") {
+            cleanup();
+            safeClose();
+            reject(new Error("User abandoned connection flow"));
+            return;
+          }
+        };
+
+        window.addEventListener("message", onMessage, false);
+
+        const closePoll = setInterval(() => {
+          if (!popup || popup.closed) {
+            cleanup();
+            reject(new Error("Connection window closed"));
+          }
+        }, 500);
+
+        function cleanup() {
+          window.removeEventListener("message", onMessage, false);
+          clearInterval(closePoll);
+        }
+
+        function safeClose() {
+          try { popup && !popup.closed && popup.close(); } catch {}
+        }
+      });
+    }
+
+    // -------------------------
+    // Unified Connect per broker
+    // -------------------------
+    async function connectBroker(brokerId, btnEl = null) {
+      const b = brokers.find(x => x.id === brokerId);
+      if (!b) return alert("Unknown broker: " + brokerId);
+
+      const setBusy = (busy, label) => {
+        if (!btnEl) return;
+        btnEl.setAttribute("aria-busy", busy ? "true" : "false");
+        btnEl.textContent = label || (busy ? "Connecting…" : "Connect");
+      };
+
+      try {
+        setBusy(true, "Connecting…");
+
+        if (b.connect?.type === "snaptrade") {
+          const authId = await connectSnapTradePopup({ brokerSlug: b.connect.brokerSlug || null });
+
+          // Optional: notify your backend that connection completed
+          // await fetch("/api/snaptrade/connection-complete", {
+          //   method:"POST",
+          //   headers:{ "Content-Type":"application/json" },
+          //   body: JSON.stringify({ authorizationId: authId, brokerId: b.id })
+          // });
+
+          alert(`✅ Connected: ${b.name}\nAuthorization ID: ${authId}`);
+          setBusy(false, "Connected ✓");
+          return;
+        }
+
+        if (b.connect?.type === "oauth" || b.connect?.type === "link") {
+          window.location.href = b.connect.href;
+          return;
+        }
+
+        alert(`Connect not configured for ${b.name}`);
+      } catch (err) {
+        console.error(err);
+        alert(`❌ ${b.name} connect failed:\n${err?.message || err}`);
+      } finally {
+        setBusy(false, "Connect");
+      }
+    }
+
+    // -------------------------
+    // Render grid from array
+    // -------------------------
+    function card(b) {
+      const ratingText = `${b.rating.toFixed(1)} • ${b.tier}`;
+      const reviews = b.reviews ?? "—";
+      const accounts = b.accounts ?? "—";
+
+      const logoHtml = b.logoUrl
+        ? `<div class="logoInner"><img alt="${esc(b.name)} logo" src="${esc(b.logoUrl)}"></div>`
+        : `<div class="logoInner">${esc(b.logoText || b.name.slice(0, 1))}</div>`;
+
+      const connectDisabled = !b.connect?.type;
+      const connectLabel = connectDisabled ? "Not available" : "Connect";
+
+      return `
+<section class="card" data-name="${esc((b.name + " " + b.assets + " " + b.tier).toLowerCase())}">
+  <div class="left">
+    <div class="logoArea">
+      <div class="tileStack">
+        <div class="tile back2"></div>
+        <div class="tile back1"></div>
+        <div class="tile">${logoHtml}</div>
+      </div>
+    </div>
+
+    <div class="nameRow">
+      <div class="name">${esc(b.name)}</div>
+      <span class="badge">${esc(b.tier)}</span>
+    </div>
+
+    <div class="sub">Tradable assets: ${esc(b.assets)}</div>
+    <div class="sub">${esc(b.blurb)}</div>
+
+    <div class="meta">
+      <div class="stars">
+        <span>${esc(ratingText)}</span>
+        <span class="starRow">${stars(b.rating)}</span>
+      </div>
+      <span class="dot"></span>
+      <span>Reviews: ${esc(reviews)}</span>
+      <span class="dot"></span>
+      <span>Accounts: ${esc(accounts)}</span>
+    </div>
+
+    <div class="ctaRow">
+      <a class="btn primary" href="${esc(b.cta.href)}" target="${esc(b.cta.target || "_self")}">${esc(b.cta.label)} →</a>
+      <a class="btn"
+         href="#"
+         data-connect="1"
+         data-broker="${esc(b.id)}"
+         ${connectDisabled ? 'aria-disabled="true" style="opacity:.55;pointer-events:none;"' : ""}
+         onclick="connectBroker(this.dataset.broker, this); return false;">
+         ${esc(connectLabel)}
+      </a>
+    </div>
+  </div>
+</section>
+`;
+    }
+
+    function render(list) {
+      document.getElementById("grid").innerHTML = list.map(card).join("");
+    }
+
+    render(brokers);
+
+    // Search filter
+    document.getElementById("q").addEventListener("input", (e) => {
+      const q = (e.target.value || "").trim().toLowerCase();
+      const items = [...document.querySelectorAll(".card")];
+      for (const it of items) {
+        const hay = it.getAttribute("data-name") || "";
+        it.style.display = !q || hay.includes(q) ? "" : "none";
+      }
+    });
+
+    // (optional) navbar clock
+    const navClock = document.getElementById("nav-clock");
+    function tickClock(){
+      const t = new Date().toLocaleTimeString();
+      if (navClock) navClock.textContent = t;
+    }
+    setInterval(tickClock, 1000);
+    tickClock();
+  </script>
+</body>
+</html>

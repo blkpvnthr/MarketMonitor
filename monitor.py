@@ -1,6 +1,8 @@
 import os
 import csv
 import math
+import time
+import random
 from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -9,37 +11,32 @@ from enum import Enum
 from typing import Deque, Dict, Optional, List, Tuple, Any
 from pathlib import Path
 
-from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
+from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
 
-import numpy as np # pyright: ignore[reportMissingImports]
-import pandas as pd # pyright: ignore[reportMissingModuleSource]
+import numpy as np  # pyright: ignore[reportMissingImports]
+import pandas as pd  # pyright: ignore[reportMissingModuleSource]
 
-from alpaca.data.live import StockDataStream # pyright: ignore[reportMissingImports]
-from alpaca.data.enums import DataFeed # pyright: ignore[reportMissingImports]
-from alpaca.data.historical import StockHistoricalDataClient # pyright: ignore[reportMissingImports]
-from alpaca.data.requests import StockLatestQuoteRequest # pyright: ignore[reportMissingImports]
+from alpaca.data.live import StockDataStream  # pyright: ignore[reportMissingImports]
+from alpaca.data.enums import DataFeed  # pyright: ignore[reportMissingImports]
+from alpaca.data.historical import StockHistoricalDataClient  # pyright: ignore[reportMissingImports]
+from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest  # pyright: ignore[reportMissingImports]
+from alpaca.data.timeframe import TimeFrame  # pyright: ignore[reportMissingImports]
 
 
 NY = ZoneInfo("America/New_York")
 
+# -----------------------------
+# Env / Auth
+# -----------------------------
+load_dotenv()  # loads .env if present
 
-load_dotenv()
-APCA_API_KEY_ID = os.getenv("APCA_API_KEY_ID", "")
-APCA_API_SECRET_KEY = os.getenv("APCA_API_SECRET_KEY", "")
-APCA_PAPER = os.getenv("APCA_PAPER", "true").lower() == "true"
+APCA_API_KEY_ID = os.getenv("APCA_API_KEY_ID", "").strip()
+APCA_API_SECRET_KEY = os.getenv("APCA_API_SECRET_KEY", "").strip()
+
 if not APCA_API_KEY_ID:
     raise ValueError("Missing APCA_API_KEY_ID in environment / .env")
 if not APCA_API_SECRET_KEY:
     raise ValueError("Missing APCA_API_SECRET_KEY in environment / .env")
-WS_URL = os.getenv("ALPACA_WS_URL", "wss://stream.data.alpaca.markets/v2/iex")
-RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "trading-runner:latest")
-WORK_ROOT = Path(os.getenv("WORK_ROOT", "workspaces"))
-
-# Safety caps
-RUN_TIMEOUT_SEC_DEFAULT = int(os.getenv("RUN_TIMEOUT_SEC", "30"))
-RUN_CPUS = os.getenv("RUN_CPUS", "1.0")
-RUN_MEMORY = os.getenv("RUN_MEMORY", "768m")
-RUN_PIDS = os.getenv("RUN_PIDS", "256")
 
 # -----------------------------
 # Utilities
@@ -47,22 +44,18 @@ RUN_PIDS = os.getenv("RUN_PIDS", "256")
 def ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
-
 def today_yyyymmdd(ts: datetime) -> str:
     return ts.astimezone(NY).strftime("%Y%m%d")
-
 
 def day_key(ts: datetime) -> Tuple[int, int, int]:
     t = ts.astimezone(NY)
     return (t.year, t.month, t.day)
 
-
-def safe_float(x) -> float:
+def safe_float(x: Any) -> float:
     try:
         return float(x)
     except Exception:
         return float("nan")
-
 
 def env_float(name: str, default: float) -> float:
     raw = os.environ.get(name, "")
@@ -73,12 +66,19 @@ def env_float(name: str, default: float) -> float:
     except Exception:
         return default
 
-
 def env_bool(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name, "")
     if raw == "":
         return default
     return raw.strip().lower() in ("1", "true", "yes", "y", "on")
+
+def candle_dir(open_price: float, close_price: float, min_body_pct: float) -> int:
+    if open_price <= 0 or close_price <= 0:
+        return 0
+    body_pct = abs((close_price - open_price) / open_price)
+    if body_pct < min_body_pct:
+        return 0
+    return 1 if close_price > open_price else -1
 
 
 # -----------------------------
@@ -134,7 +134,7 @@ class BarAggregator:
             raise ValueError("timeframe_minutes must be > 0")
         self.tf = timeframe_minutes
         self.current: Optional[OHLCV] = None
-        self.bucket_key: Optional[Tuple[Tuple[int, int, int], int, int]] = None  # (day, hour, bucket_start_min)
+        self.bucket_key: Optional[Tuple[Tuple[int, int, int], int, int]] = None
 
     def _calc_bucket_key(self, ts: datetime) -> Tuple[Tuple[int, int, int], int, int]:
         ts = ts.astimezone(NY)
@@ -160,8 +160,7 @@ class BarAggregator:
             return None
 
         if key != self.bucket_key:
-            # ✅ previous is CLOSED
-            finished = self.current
+            finished = self.current  # ✅ closed
             self.bucket_key = key
             self.current = OHLCV(
                 time=ts.replace(second=0, microsecond=0),
@@ -173,7 +172,6 @@ class BarAggregator:
             )
             return finished
 
-        # partial update only
         self.current.high = max(self.current.high, bar_1m.high)
         self.current.low = min(self.current.low, bar_1m.low)
         self.current.close = bar_1m.close
@@ -333,12 +331,10 @@ class CandidateState(str, Enum):
     RECONSIDER = "RECONSIDER"
     CONFIRMED = "CONFIRMED"
 
-
 class DirectionBias(str, Enum):
     LONG_ONLY = "LONG_ONLY"
     SHORT_ONLY = "SHORT_ONLY"
     BOTH = "BOTH"
-
 
 @dataclass
 class SymbolSession:
@@ -346,7 +342,6 @@ class SymbolSession:
     dir_5m: List[int] = field(default_factory=list)
     flip_count: int = 0
     score: float = 1.0
-
 
     vwap_dist_5m: float = float("nan")
     vwap_dist_15m: float = float("nan")
@@ -362,15 +357,9 @@ class SymbolSession:
     dir_30m: int = 0
     last_reason: str = ""
 
-def candle_dir(open_: float, close: float, min_body_pct: float = 0.0005) -> int:
-    if open_ <= 0 or math.isnan(open_) or math.isnan(close):
-        return 0
-    body = (close - open_) / open_
-    if body >= min_body_pct:
-        return +1
-    if body <= -min_body_pct:
-        return -1
-    return 0
+    sma_100: float = float("nan")
+    sma_200: float = float("nan")
+    sma_spread_pct: float = float("nan")  # (SMA100/SMA200 - 1)*100
 
 
 class EligibilityEngine:
@@ -380,14 +369,19 @@ class EligibilityEngine:
         vwap_near_pct: float = 0.10,
         min_body_pct: float = 0.0005,
         max_initial_5m_bars: int = 6,
+        sma_min_pct: float = 3.0,
+        sma_max_pct: float = 10.0,
     ):
         self.vwap_extreme_dist_pct = vwap_extreme_dist_pct
         self.vwap_near_pct = vwap_near_pct
         self.min_body_pct = min_body_pct
         self.max_initial_5m_bars = max_initial_5m_bars
+        self.sma_min_pct = sma_min_pct
+        self.sma_max_pct = sma_max_pct
         self.sessions: Dict[str, SymbolSession] = {}
 
     def session(self, symbol: str) -> SymbolSession:
+        symbol = symbol.upper()
         if symbol not in self.sessions:
             self.sessions[symbol] = SymbolSession()
         return self.sessions[symbol]
@@ -404,10 +398,41 @@ class EligibilityEngine:
             base = 1.0
         return float(base * s.sizing_mult)
 
-    def update_on_5m_close(self, symbol: str, bar5: OHLCV, vwap_dist_pct_5m: float, bar_index_5m: int) -> SymbolSession:
-        s = self.session(symbol)
-        s.vwap_dist_5m = float(vwap_dist_pct_5m) if vwap_dist_pct_5m is not None else float("nan")
+    def _sma_bias_ok(self, s: SymbolSession) -> bool:
+        sp = float(getattr(s, "sma_spread_pct", float("nan")))
+        if math.isnan(sp):
+            return False
+        lo = self.sma_min_pct
+        hi = self.sma_max_pct
+        if s.bias == DirectionBias.LONG_ONLY:
+            return (sp > lo) and (sp < hi)
+        if s.bias == DirectionBias.SHORT_ONLY:
+            return (sp < -lo) and (sp > -hi)
+        return True
 
+    def _apply_sma_gate(self, s: SymbolSession, context: str) -> None:
+        if s.bias not in (DirectionBias.LONG_ONLY, DirectionBias.SHORT_ONLY):
+            return
+        if self._sma_bias_ok(s):
+            return
+
+        sp = float(getattr(s, "sma_spread_pct", float("nan")))
+        s.allow_trend = False
+        s.allow_mean_reversion = True
+        s.state = CandidateState.SUSPENDED
+        s.score *= 0.40
+        s.last_reason = (
+            f"SUSPENDED: SMA gate failed ({context}) "
+            f"bias={s.bias.value} spread={sp:.2f}% "
+            f"(need LONG: +{self.sma_min_pct:.1f}..+{self.sma_max_pct:.1f} "
+            f"or SHORT: -{self.sma_max_pct:.1f}..-{self.sma_min_pct:.1f})"
+        )
+
+    def update_on_5m_close(self, symbol: str, bar5: OHLCV, vwap_dist_pct_5m: float, bar_index_5m: int) -> Tuple[SymbolSession, bool]:
+        s = self.session(symbol)
+        prev_state = s.state
+
+        s.vwap_dist_5m = float(vwap_dist_pct_5m) if vwap_dist_pct_5m is not None else float("nan")
         d = candle_dir(bar5.open, bar5.close, self.min_body_pct)
 
         if len(s.dir_5m) < self.max_initial_5m_bars:
@@ -415,19 +440,16 @@ class EligibilityEngine:
                 s.flip_count += 1
             s.dir_5m.append(d)
 
-        # 5m#1: extreme dislocation filter only
-        # 5m#1: extreme dislocation filter only
         if bar_index_5m == 1:
             if not math.isnan(s.vwap_dist_5m) and abs(s.vwap_dist_5m) >= self.vwap_extreme_dist_pct:
                 s.score *= 0.25
                 s.state = CandidateState.SUSPENDED
                 s.last_reason = f"Suspended: 5m#1 extreme VWAP dislocation ({s.vwap_dist_5m:.2f}%)"
-                return s
-            s.last_reason = "5m#1 ok (no extreme VWAP dislocation)"
-            return s
+            else:
+                s.last_reason = "5m#1 ok (no extreme VWAP dislocation)"
 
+            return s, (prev_state != CandidateState.SUSPENDED and s.state == CandidateState.SUSPENDED)
 
-        # 5m#2: flip logic, VWAP context (near VWAP = open chop)
         if bar_index_5m == 2 and len(s.dir_5m) >= 2:
             d1, d2 = s.dir_5m[0], s.dir_5m[1]
             if d1 != 0 and d2 != 0 and d1 != d2:
@@ -439,25 +461,22 @@ class EligibilityEngine:
                     if near_vwap else
                     f"Suspended: 5m#1/#2 conflict (VWAP dist {s.vwap_dist_5m:.2f}%)"
                 )
-                return s
+                return s, (prev_state != CandidateState.SUSPENDED)
 
-
-        # Chop penalty: many flips early -> disable trend families
         if len(s.dir_5m) >= 4 and s.flip_count >= 3:
             s.score *= 0.80
             s.allow_trend = False
             s.allow_mean_reversion = True
             s.last_reason = f"Chop detected: flip_count={s.flip_count}; trend disabled"
 
+        return s, (prev_state != CandidateState.SUSPENDED and s.state == CandidateState.SUSPENDED)
 
-        return s
 
     def update_on_15m_close(self, symbol: str, bar15: OHLCV, vwap_dist_pct_15m: float) -> SymbolSession:
         s = self.session(symbol)
         s.vwap_dist_15m = float(vwap_dist_pct_15m) if vwap_dist_pct_15m is not None else float("nan")
         s.dir_15m = candle_dir(bar15.open, bar15.close, self.min_body_pct)
 
-        # Bias from VWAP
         if not math.isnan(s.vwap_dist_15m):
             if s.vwap_dist_15m > self.vwap_near_pct:
                 s.bias = DirectionBias.LONG_ONLY
@@ -466,25 +485,17 @@ class EligibilityEngine:
             else:
                 s.bias = DirectionBias.BOTH
 
-        # near VWAP -> favor reversion
-        near_vwap = (not math.isnan(s.vwap_dist_15m)) and (abs(s.vwap_dist_15m) <= self.vwap_near_pct)
-        if near_vwap:
-            s.allow_mean_reversion = True
-            if s.flip_count >= 2:
-                s.allow_trend = False
-            s.last_reason = f"15m near VWAP ({s.vwap_dist_15m:.2f}%): bias=BOTH; favor reversion"
-        else:
-            s.allow_trend = (s.flip_count < 3)
-            s.allow_mean_reversion = True
-            s.last_reason = f"15m bias={s.bias.value} from VWAP ({s.vwap_dist_15m:.2f}%)"
+        self._apply_sma_gate(s, context="15m_close")
+        if s.state == CandidateState.SUSPENDED and "SMA gate failed" in s.last_reason:
+            return s
 
-        # Dynamic reconsider rule
         if s.state == CandidateState.SUSPENDED and s.dir_15m != 0:
-            s.score *= 1.15
-            s.state = CandidateState.RECONSIDER
-            s.last_reason = f"Reconsider: 15m candle directional (dir_15m={s.dir_15m})"
-
-
+            if s.bias in (DirectionBias.LONG_ONLY, DirectionBias.SHORT_ONLY):
+                s.score *= 1.15
+                s.state = CandidateState.RECONSIDER
+                s.last_reason = f"Reconsider: 15m directional + bias={s.bias.value} (dir_15m={s.dir_15m})"
+            else:
+                s.last_reason = f"Remain SUSPENDED: 15m directional but bias=BOTH (dir_15m={s.dir_15m})"
         return s
 
     def update_on_30m_close(self, symbol: str, bar30: OHLCV, vwap_dist_pct_30m: float) -> SymbolSession:
@@ -492,30 +503,28 @@ class EligibilityEngine:
         s.vwap_dist_30m = float(vwap_dist_pct_30m) if vwap_dist_pct_30m is not None else float("nan")
         s.dir_30m = candle_dir(bar30.open, bar30.close, self.min_body_pct)
 
-        if s.state == CandidateState.SUSPENDED and s.dir_30m != 0:
-            s.state = CandidateState.RECONSIDER
-            s.last_reason = f"Reconsider: 30m candle directional (dir_30m={s.dir_30m})"
-
-        aligns_with_vwap: Optional[bool] = None
         if not math.isnan(s.vwap_dist_30m):
-            if s.dir_30m > 0:
-                aligns_with_vwap = (s.vwap_dist_30m > self.vwap_near_pct)
-            elif s.dir_30m < 0:
-                aligns_with_vwap = (s.vwap_dist_30m < -self.vwap_near_pct)
-
-        if s.dir_30m == 0:
-            near_vwap = (not math.isnan(s.vwap_dist_30m)) and (abs(s.vwap_dist_30m) <= self.vwap_near_pct)
-            if near_vwap:
-                s.allow_trend = False
-                s.allow_mean_reversion = True
-                if s.state != CandidateState.SUSPENDED:
-                    s.state = CandidateState.RECONSIDER
-                s.last_reason = f"30m neutral + near VWAP ({s.vwap_dist_30m:.2f}%): trend blocked"
+            if s.vwap_dist_30m > self.vwap_near_pct:
+                s.bias = DirectionBias.LONG_ONLY
+            elif s.vwap_dist_30m < -self.vwap_near_pct:
+                s.bias = DirectionBias.SHORT_ONLY
             else:
-                s.last_reason = "30m neutral: no confirmation"
+                s.bias = DirectionBias.BOTH
+        else:
+            s.bias = DirectionBias.BOTH
+
+        self._apply_sma_gate(s, context="30m_close")
+        if s.state == CandidateState.SUSPENDED and "SMA gate failed" in s.last_reason:
             return s
 
-        if aligns_with_vwap is False:
+        aligns_with_vwap = True
+        if not math.isnan(s.vwap_dist_30m) and s.dir_30m != 0:
+            if s.vwap_dist_30m > 0 and s.dir_30m < 0:
+                aligns_with_vwap = False
+            elif s.vwap_dist_30m < 0 and s.dir_30m > 0:
+                aligns_with_vwap = False
+
+        if not aligns_with_vwap:
             s.score *= 0.70
             s.allow_trend = False
             s.allow_mean_reversion = True
@@ -524,26 +533,16 @@ class EligibilityEngine:
             s.last_reason = f"30m fights VWAP ({s.vwap_dist_30m:.2f}%): trend blocked; RECONSIDER"
             return s
 
-        # Direction aligns with VWAP (or VWAP unknown) -> confirm if not too choppy
         if s.flip_count <= 3:
             s.score *= 1.20
             s.state = CandidateState.CONFIRMED
+            s.last_reason = "30m confirm (aligns + not too choppy)"
         else:
             s.score *= 0.90
             s.state = CandidateState.RECONSIDER
             s.allow_trend = False
             s.allow_mean_reversion = True
             s.last_reason = f"30m confirms but choppy (flips={s.flip_count}): trend blocked"
-
-        # Bias lock
-        if not math.isnan(s.vwap_dist_30m):
-            if s.vwap_dist_30m > self.vwap_near_pct:
-                s.bias = DirectionBias.LONG_ONLY
-            elif s.vwap_dist_30m < -self.vwap_near_pct:
-                s.bias = DirectionBias.SHORT_ONLY
-            else:
-                s.bias = DirectionBias.BOTH
-
         return s
 
     def update_on_1h_close(self, symbol: str, vwap_dist_pct_1h: float) -> SymbolSession:
@@ -569,7 +568,6 @@ class EligibilityEngine:
         else:
             s.sizing_mult = 1.0
             s.last_reason = f"1h sizing neutral: VWAP ({s.vwap_dist_1h:.2f}%) vs bias {s.bias.value}"
-
         return s
 
 
@@ -643,18 +641,9 @@ class CSVAppender:
 
 
 # -----------------------------
-# Quote Cache (latest snapshot per symbol) + initial fetch
+# Quote Cache
 # -----------------------------
 class QuoteCache:
-    """
-    Maintains latest quote snapshot per symbol.
-
-    Integrates the docs logic:
-    - Historical latest quote retrieval via StockHistoricalDataClient + StockLatestQuoteRequest
-      returns dict keyed by symbol.
-    - Live quote streaming via StockDataStream.subscribe_quotes(handler, *symbols)
-    """
-
     def __init__(self, historical_client: StockHistoricalDataClient, writer: CSVAppender, log_quotes: bool):
         self.client = historical_client
         self.writer = writer
@@ -665,14 +654,10 @@ class QuoteCache:
         return self.latest.get(symbol, QuoteSnap())
 
     def seed_latest_quotes(self, symbols: List[str]) -> None:
-        """
-        One-time initial snapshot.
-        IMPORTANT: response is dict keyed by symbol even if you request one symbol.
-        """
         if not symbols:
             return
         req = StockLatestQuoteRequest(symbol_or_symbols=symbols)
-        data = self.client.get_stock_latest_quote(req)  # dict keyed by symbol
+        data = self.client.get_stock_latest_quote(req)
         for sym in symbols:
             q = data.get(sym)
             if q is None:
@@ -686,10 +671,6 @@ class QuoteCache:
             )
 
     def update_from_stream(self, q: Any) -> None:
-        """
-        Called by live quote handler. Alpaca's quote model typically has:
-        symbol, timestamp, bid_price, bid_size, ask_price, ask_size
-        """
         sym = getattr(q, "symbol", None)
         if not sym:
             return
@@ -700,13 +681,13 @@ class QuoteCache:
             ask_price=safe_float(getattr(q, "ask_price", float("nan"))),
             ask_size=safe_float(getattr(q, "ask_size", float("nan"))),
         )
-        self.latest[sym] = snap
+        self.latest[str(sym).upper()] = snap
 
         if self.log_quotes:
             ts = snap.time or datetime.now(tz=NY)
             row = {
                 "time": ts.astimezone(NY).isoformat() if hasattr(ts, "astimezone") else str(ts),
-                "symbol": sym,
+                "symbol": str(sym).upper(),
                 "bid_price": snap.bid_price,
                 "bid_size": snap.bid_size,
                 "ask_price": snap.ask_price,
@@ -723,81 +704,199 @@ class QuoteCache:
 # -----------------------------
 class MarketMonitor:
     def __init__(self, symbols: List[str], out_dir: str, feed: DataFeed, regime_symbol: str):
-        self.symbols = symbols
+        # ---- normalize + de-dupe symbols (preserve order) ----
+        seen = set()
+        self.symbols: List[str] = []
+        for s in symbols:
+            sym = str(s).strip().upper()
+            if not sym or sym in seen:
+                continue
+            seen.add(sym)
+            self.symbols.append(sym)
+
         self.writer = CSVAppender(out_dir)
+        self.feed = feed
 
-        # Auth
-        api_key = os.environ.get("APCA_API_KEY_ID") or os.environ.get("APCA_API_KEY_ID")
-        api_secret = os.environ.get("APCA_API_SECRET_KEY") or os.environ.get("ALPACA_API_SECRET")
-        if not api_key or not api_secret:
-            raise RuntimeError("Missing API keys. Set APCA_API_KEY_ID and APCA_API_SECRET_KEY.")
-        self.api_key = api_key
-        self.api_secret = api_secret
+        # Auth (use the validated globals you already set from .env)
+        self.api_key = APCA_API_KEY_ID
+        self.api_secret = APCA_API_SECRET_KEY
 
-        # Eligibility engine thresholds
+        # thresholds
         vwap_extreme = env_float("VWAP_EXTREME_DIST_PCT", 1.25)
         vwap_near = env_float("VWAP_NEAR_PCT", 0.10)
-        self.engine = EligibilityEngine(vwap_extreme_dist_pct=vwap_extreme, vwap_near_pct=vwap_near)
+        sma_min = env_float("SMA_MIN_PCT", 3.0)
+        sma_max = env_float("SMA_MAX_PCT", 10.0)
 
-        # If user explicitly provided REGIME_SYMBOL and it exists, honor it.
-        # Otherwise, auto-select later once a symbol becomes CONFIRMED.
+        self.engine = EligibilityEngine(
+            vwap_extreme_dist_pct=vwap_extreme,
+            vwap_near_pct=vwap_near,
+            sma_min_pct=sma_min,
+            sma_max_pct=sma_max,
+        )
+
+        # Regime symbol selection
         self.regime_symbol_override = (regime_symbol or "").strip().upper()
-        self.regime_symbol: Optional[str] = self.regime_symbol_override if self.regime_symbol_override in symbols else None
+        self.regime_symbol: Optional[str] = (
+            self.regime_symbol_override if self.regime_symbol_override in self.symbols else None
+        )
+        self.regime_selection_locked: bool = False
 
+        # NEW: dashboard ranking output (for “Top Long Momentum”)
+        self.dashboard_dir = os.path.join(self.writer.out_dir, "dashboard")
+        ensure_dir(self.dashboard_dir)
+        self._top_long_dirty: bool = True  # force initial write
 
-        # Aggregators
+        # aggregators / series
         self.aggs: Dict[str, Dict[str, BarAggregator]] = {
-            "5m": {s: BarAggregator(5) for s in symbols},
-            "15m": {s: BarAggregator(15) for s in symbols},
-            "30m": {s: BarAggregator(30) for s in symbols},
-            "1h": {s: BarAggregator(60) for s in symbols},
+            "5m": {s: BarAggregator(5) for s in self.symbols},
+            "15m": {s: BarAggregator(15) for s in self.symbols},
+            "30m": {s: BarAggregator(30) for s in self.symbols},
+            "1h": {s: BarAggregator(60) for s in self.symbols},
         }
-
-        # Rolling series for features (closed bars only)
         self.series: Dict[str, Dict[str, RollingSeries]] = {
-            "5m": {s: RollingSeries(maxlen=1600) for s in symbols},
-            "15m": {s: RollingSeries(maxlen=1600) for s in symbols},
-            "30m": {s: RollingSeries(maxlen=1600) for s in symbols},
-            "1h": {s: RollingSeries(maxlen=4000) for s in symbols},
+            "5m": {s: RollingSeries(maxlen=1600) for s in self.symbols},
+            "15m": {s: RollingSeries(maxlen=1600) for s in self.symbols},
+            "30m": {s: RollingSeries(maxlen=1600) for s in self.symbols},
+            "1h": {s: RollingSeries(maxlen=4000) for s in self.symbols},
         }
+        self.closed_5m_count: Dict[str, int] = {s: 0 for s in self.symbols}
 
-        self.closed_5m_count: Dict[str, int] = {s: 0 for s in symbols}
+        # historical client + SMA seed + quote cache seed
+        self.hist_client = StockHistoricalDataClient(self.api_key, self.api_secret)
+        self._seed_daily_sma_regime(self.hist_client)
 
-        # Quote cache: seed via historical client + update via live quote stream
-        hist_client = StockHistoricalDataClient(self.api_key, self.api_secret)
         self.quote_cache = QuoteCache(
-            historical_client=hist_client,
+            historical_client=self.hist_client,
             writer=self.writer,
             log_quotes=env_bool("LOG_QUOTES", False),
         )
         self.quote_cache.seed_latest_quotes(self.symbols)
 
-        self.feed = feed
-    
+        # Initial write so UI has something immediately
+        try:
+            self._refresh_top_long_momentum(datetime.now(tz=NY))
+        except Exception:
+            pass
+
+    def _seed_daily_sma_regime(self, hist_client: StockHistoricalDataClient) -> None:
+        if not self.symbols:
+            return
+        try:
+            req = StockBarsRequest(
+                symbol_or_symbols=self.symbols,
+                timeframe=TimeFrame.Day,
+                limit=260,
+            )
+            bars = hist_client.get_stock_bars(req)
+            df = getattr(bars, "df", None)
+            if df is None or df.empty:
+                print("[SMA] Warning: no daily bars returned; SMA gate may suspend bias-only candidates.")
+                return
+
+            if isinstance(df.index, pd.MultiIndex) and "symbol" in df.index.names:
+                sym_level = "symbol"
+            elif isinstance(df.index, pd.MultiIndex):
+                sym_level = df.index.names[0]
+            else:
+                print("[SMA] Warning: unexpected daily bars df index; cannot compute SMAs.")
+                return
+
+            for sym, g in df.groupby(level=sym_level):
+                g2 = g.reset_index()
+                if "close" not in g2.columns:
+                    continue
+                close = pd.Series(g2["close"].astype(float).values)
+                if len(close) < 205:
+                    continue
+
+                sma100 = float(close.rolling(100).mean().iloc[-1])
+                sma200 = float(close.rolling(200).mean().iloc[-1])
+                spread = float((sma100 / sma200 - 1.0) * 100.0) if sma200 else float("nan")
+
+                sess = self.engine.session(str(sym).upper())
+                sess.sma_100 = sma100
+                sess.sma_200 = sma200
+                sess.sma_spread_pct = spread
+
+        except Exception as e:
+            print(f"[SMA] Warning: failed to seed SMAs ({e})")
+
+    # -----------------------------
+    # NEW: “Top Long Momentum” auto-refresh writer
+    # -----------------------------
+    def _refresh_top_long_momentum(self, ts: datetime) -> None:
+        """
+        Writes OUT_DIR/dashboard/top_long_momentum.json
+        Update this whenever a symbol becomes SUSPENDED (or whenever you want).
+        """
+        import json
+
+        rows: List[Dict[str, Any]] = []
+        for sym in self.symbols:
+            s = self.engine.session(sym)
+
+            # don’t recommend suspended symbols
+            if s.state == CandidateState.SUSPENDED:
+                continue
+
+            # "Top Long Momentum" filter = must be LONG_ONLY and trend allowed (tweak as you like)
+            if s.bias != DirectionBias.LONG_ONLY:
+                continue
+            if not getattr(s, "allow_trend", True):
+                continue
+
+            # rank key (simple): engine score * sizing_mult
+            score = float(getattr(s, "score", 0.0)) * float(getattr(s, "sizing_mult", 1.0))
+
+            rows.append({
+                "symbol": sym,
+                "score": round(score, 6),
+                "state": s.state.value,
+                "bias": s.bias.value,
+                "allow_trend": bool(getattr(s, "allow_trend", True)),
+                "flip_count": int(getattr(s, "flip_count", 0)),
+                "vwap_dist_30m": float(getattr(s, "vwap_dist_30m", float("nan"))),
+            })
+
+        rows.sort(key=lambda r: r["score"], reverse=True)
+
+        payload = {
+            "time": ts.astimezone(NY).isoformat(),
+            "top": rows[:10],
+        }
+
+        path = os.path.join(self.dashboard_dir, "top_long_momentum.json")
+        with open(path, "w") as f:
+            json.dump(payload, f)
+
+        self._top_long_dirty = False
+
+    # -----------------------------
+    # Helper: call this when a symbol transitions to SUSPENDED
+    # -----------------------------
+    def _maybe_refresh_top_long_on_suspend(self, ts: datetime, symbol: str, prev_state: CandidateState) -> None:
+        new_state = self.engine.session(symbol).state
+        if prev_state != CandidateState.SUSPENDED and new_state == CandidateState.SUSPENDED:
+            self._refresh_top_long_momentum(ts)
+    # -----------------------------
+    # Helper: regime symbol selection
+    # -----------------------------
     def _maybe_select_regime_symbol(self) -> None:
-        # Honor explicit override if user set it and it exists
-        if getattr(self, "regime_symbol_override", "") and self.regime_symbol_override in self.symbols:
+        if self.regime_symbol_override and self.regime_symbol_override in self.symbols:
             self.regime_symbol = self.regime_symbol_override
             return
 
         best_sym = None
-        best_score = -1.0
-
+        best_score = -1e18
         for sym in self.symbols:
             sess = self.engine.session(sym)
-            if sess.state == CandidateState.CONFIRMED:
-                if sess.score > best_score:
-                    best_score = sess.score
-                    best_sym = sym
+            if sess.state == CandidateState.CONFIRMED and sess.score > best_score:
+                best_score = sess.score
+                best_sym = sym
 
-        if best_sym is None:
-            return
-
-        if self.regime_symbol != best_sym:
+        if best_sym and self.regime_symbol != best_sym:
             self.regime_symbol = best_sym
             print(f"[REGIME_SYMBOL SELECTED] {best_sym} (highest CONFIRMED score={best_score:.3f})")
-
-
 
     def _write_bar(self, tf: str, symbol: str, bar: OHLCV) -> None:
         row = {
@@ -833,8 +932,13 @@ class MarketMonitor:
     def _write_session_state(self, ts: datetime, symbol: str, event: str) -> None:
         s = self.engine.session(symbol)
         q = self.quote_cache.get(symbol)
-        qt = q.time.astimezone(NY).isoformat() if (q.time and hasattr(q.time, "astimezone")) else (str(q.time) if q.time else "")
-        
+
+        qt = ""
+        if q.time is not None and hasattr(q.time, "astimezone"):
+            qt = q.time.astimezone(NY).isoformat()
+        elif q.time is not None:
+            qt = str(q.time)
+
         row = {
             "time": ts.astimezone(NY).isoformat(),
             "symbol": symbol,
@@ -846,6 +950,10 @@ class MarketMonitor:
             "allow_trend": int(s.allow_trend),
             "allow_mean_reversion": int(s.allow_mean_reversion),
             "flip_count": int(s.flip_count),
+
+            "sma_100": float(getattr(s, "sma_100", float("nan"))),
+            "sma_200": float(getattr(s, "sma_200", float("nan"))),
+            "sma_spread_pct": float(getattr(s, "sma_spread_pct", float("nan"))),
 
             "dir_5m_1": s.dir_5m[0] if len(s.dir_5m) > 0 else 0,
             "dir_5m_2": s.dir_5m[1] if len(s.dir_5m) > 1 else 0,
@@ -866,7 +974,6 @@ class MarketMonitor:
             "risk_mult": float(self.engine.risk_multiplier(symbol)),
             "reason": s.last_reason,
 
-            # Quote snapshot (context only)
             "quote_time": qt,
             "bid_price": q.bid_price,
             "bid_size": q.bid_size,
@@ -880,10 +987,13 @@ class MarketMonitor:
 
     # --- Live handlers ---
     async def on_quote(self, q) -> None:
-        # Real-time quotes (context-only)
         self.quote_cache.update_from_stream(q)
 
     async def on_1m_bar(self, bar) -> None:
+        sym = str(bar.symbol).upper()
+        if sym not in self.symbols:
+            return
+
         ts = bar.timestamp.astimezone(NY)
         bar_1m = OHLCV(
             time=ts.replace(second=0, microsecond=0),
@@ -894,20 +1004,12 @@ class MarketMonitor:
             volume=safe_float(bar.volume),
         )
 
-        sym = bar.symbol
-        if sym not in self.symbols:
-            return
-
-        # Process higher timeframes FIRST so prints come out in this order:
-        # 1H, 30M, 15M, 5M
+        # order: 1h, 30m, 15m, 5m
         for tf in ("1h", "30m", "15m", "5m"):
             finished = self.aggs[tf][sym].update(bar_1m)
             if not finished:
-                continue  # ❌ partial bars ignored
+                continue  # ignore partials
 
-            # ----------------------------
-            # Persist closed bar + features
-            # ----------------------------
             self._write_bar(tf, sym, finished)
 
             self.series[tf][sym].add(finished)
@@ -917,9 +1019,9 @@ class MarketMonitor:
 
             vwap_dist = float(feats.get("vwap_dist_pct", float("nan"))) if feats else float("nan")
 
-            # ----------------------------
-            # Eligibility + regime logic
-            # ----------------------------
+            # Track state transitions so we can auto-refresh “Top Long Momentum” when a symbol gets suspended
+            prev_state = self.engine.session(sym).state
+
             if tf == "5m":
                 self.closed_5m_count[sym] += 1
                 idx = self.closed_5m_count[sym]
@@ -929,52 +1031,55 @@ class MarketMonitor:
                     vwap_dist_pct_5m=vwap_dist,
                     bar_index_5m=idx,
                 )
+                self._maybe_refresh_top_long_on_suspend(finished.time, sym, prev_state)
                 self._write_session_state(finished.time, sym, event="5m_close")
 
             elif tf == "15m":
                 self.engine.update_on_15m_close(sym, finished, vwap_dist_pct_15m=vwap_dist)
+                self._maybe_refresh_top_long_on_suspend(finished.time, sym, prev_state)
                 self._write_session_state(finished.time, sym, event="15m_close")
 
             elif tf == "30m":
                 self.engine.update_on_30m_close(sym, finished, vwap_dist_pct_30m=vwap_dist)
+                self._maybe_refresh_top_long_on_suspend(finished.time, sym, prev_state)
                 self._write_session_state(finished.time, sym, event="30m_close")
 
-                # 🔑 choose regime symbol by highest CONFIRMED score
-                self._maybe_select_regime_symbol()
+                if not self.regime_selection_locked:
+                    self._maybe_select_regime_symbol()
 
             elif tf == "1h":
                 self.engine.update_on_1h_close(sym, vwap_dist_pct_1h=vwap_dist)
+                self._maybe_refresh_top_long_on_suspend(finished.time, sym, prev_state)
                 self._write_session_state(finished.time, sym, event="1h_close")
 
-                if self.regime_symbol is not None and sym == self.regime_symbol and feats:
+                # lock on the FIRST 1h close we see
+                if not self.regime_selection_locked:
+                    self.regime_selection_locked = True
+                    if self.regime_symbol:
+                        print(f"[REGIME LOCKED] {self.regime_symbol} (locked after first 1H CLOSED bar)")
+                    else:
+                        print("[REGIME LOCKED] None selected (locked after first 1H CLOSED bar)")
+
+                # only write market regime for the chosen symbol
+                if self.regime_symbol and sym == self.regime_symbol and feats:
                     self._write_market_regime(finished.time, sym, feats)
 
-            # ----------------------------
-            # ✅ EXACT PRINT FORMAT (AS REQUESTED)
-            # ----------------------------
-            tf_label = {
-                "1h": "1H",
-                "30m": "30M",
-                "15m": "15M",
-                "5m": "5M",
-            }[tf]
+            # Also refresh periodically if you want (optional):
+            # if self._top_long_dirty:
+            #     self._refresh_top_long_momentum(finished.time)
 
+            # ---- clean print ----
+            sess = self.engine.session(sym)
+            tf_label = {"1h": "1H", "30m": "30M", "15m": "15M", "5m": "5M"}[tf]
             print(
-                f"[{tf_label} CLOSED] "
-                f"{sym} "
-                f"{finished.time.astimezone(NY).strftime('%H:%M')} "
-                f"close={finished.close:.2f}"
+                f"[{tf_label} CLOSED] {sym} {finished.time.astimezone(NY).strftime('%H:%M')} "
+                f"close={finished.close:.2f} "
+                f"state={sess.state.value} bias={sess.bias.value} "
+                f"trend={'Y' if sess.allow_trend else 'N'} mr={'Y' if sess.allow_mean_reversion else 'N'} "
+                f"score={sess.score:.3f}"
             )
 
     def run(self) -> None:
-        stream = StockDataStream(self.api_key, self.api_secret, feed=self.feed)
-
-        # ✅ Bars for signals/features (closed-only after resample)
-        stream.subscribe_bars(self.on_1m_bar, *self.symbols)
-
-        # ✅ Quotes for context (live); integrated per Alpaca docs
-        stream.subscribe_quotes(self.on_quote, *self.symbols)
-
         print(f"Streaming 1m bars + live quotes for {len(self.symbols)} symbols on feed={self.feed} ...")
         print("CLOSED-BAR ONLY: eligibility + features updated ONLY on closed 5m/15m/30m/1h bars.")
         print(f"VWAP thresholds: extreme={self.engine.vwap_extreme_dist_pct:.2f}%  near={self.engine.vwap_near_pct:.2f}%")
@@ -982,23 +1087,93 @@ class MarketMonitor:
             print(f"Regime benchmark symbol (preset): {self.regime_symbol} (writes market_regime.csv on CLOSED 1h bars)")
         else:
             print("Regime benchmark symbol: AUTO (will select first symbol that becomes CONFIRMED at 30m)")
-
         if env_bool("LOG_QUOTES", False):
             print("Quote logging enabled: OUT_DIR/quotes/quotes_YYYYMMDD.csv")
 
-        stream.run()
+        max_retries = int(os.environ.get("WS_CONNECT_RETRIES", "6"))
+        base_sleep = float(os.environ.get("WS_CONNECT_RETRY_SLEEP", "10"))
+        max_sleep = float(os.environ.get("WS_CONNECT_RETRY_MAX_SLEEP", "90"))
+
+        attempt = 0
+        while True:
+            stream = StockDataStream(self.api_key, self.api_secret, feed=self.feed)
+            try:
+                stream.subscribe_bars(self.on_1m_bar, *self.symbols)
+                stream.subscribe_quotes(self.on_quote, *self.symbols)
+
+                attempt += 1
+                stream.run()
+                return
+
+            except KeyboardInterrupt:
+                try:
+                    stream.stop()
+                except Exception:
+                    pass
+                print("keyboard interrupt, bye")
+                return
+
+            except Exception as e:
+                msg = str(e).lower()
+
+                try:
+                    stream.stop()
+                except Exception:
+                    pass
+
+                # FAIL FAST: this won't resolve by retrying if another process is connected
+                if "connection limit exceeded" in msg:
+                    print(
+                        "[FATAL] connection limit exceeded.\n"
+                        "You already have another Alpaca stream open for this API key, or a stale socket hasn't expired.\n"
+                        "Fix: pkill the other monitor processes and wait ~60–120s, then restart."
+                    )
+                    return
+
+                # backoff for 429 / rate-limit spam
+                if "http 429" in msg or "429" in msg:
+                    if attempt <= max_retries:
+                        sleep_s = min(max_sleep, base_sleep * (2 ** (attempt - 1)))
+                        sleep_s = sleep_s + random.uniform(0, min(3.0, sleep_s * 0.2))
+                        print(f"[WS] HTTP 429 (attempt {attempt}/{max_retries}). Sleeping {sleep_s:.1f}s then retrying...")
+                        time.sleep(sleep_s)
+                        continue
+                    print("[FATAL] Too many HTTP 429 retries. Stop reconnect spam; wait 1–2 minutes then restart.")
+                    return
+
+                # other errors: limited retries
+                if attempt <= max_retries:
+                    sleep_s = min(max_sleep, base_sleep * (2 ** (attempt - 1)))
+                    sleep_s = sleep_s + random.uniform(0, min(3.0, sleep_s * 0.2))
+                    print(f"[WS] stream error: {e} (attempt {attempt}/{max_retries}). Sleeping {sleep_s:.1f}s then retrying...")
+                    time.sleep(sleep_s)
+                    continue
+
+                raise
 
 
 # -----------------------------
-# Entrypoint
+# Entrypoint helpers
 # -----------------------------
 def parse_symbols() -> List[str]:
-    raw = os.environ.get("SYMBOLS", "XLE,XLV,DIA,QQQ,TQQQ,QTUM,BUZZ,RGTI,HEPS,OUST,IONQ,CHAT,QBTS,LUNR,SOUN,UBER,MIND,WAVE,OPEN,KXIN,NGD,NKTR,IAG,ASRT,KITT,LUNR,HFUS,UNG,NVD,GORO").strip("\n")
-    syms = [s.strip().upper() for s in raw.split(",") if s.strip()]
-    if not syms:
-        raise ValueError("No symbols provided.")
-    return syms
+    raw = os.environ.get(
+        "SYMBOLS",
+        "DJI,SPY,VIX,NDX,TSLA,SQQQ,TQQQ,QBTS,OPEN,CHAT,VOO,VGT,ASTS,"
+        "RGTI,DIA,IONQ,APLD,NVDA,QTUM,NANC,MAGS,MIND,PAYS,UAVS,MGIC,BNZI"
+    ).strip()
 
+    seen: set[str] = set()
+    out: List[str] = []
+    for part in raw.split(","):
+        sym = part.strip().upper()
+        if not sym or sym in seen:
+            continue
+        seen.add(sym)
+        out.append(sym)
+
+    if not out:
+        raise ValueError("No symbols provided.")
+    return out
 
 def parse_feed() -> DataFeed:
     raw = os.environ.get("ALPACA_DATA_FEED", "IEX").strip().upper()
@@ -1009,7 +1184,7 @@ if __name__ == "__main__":
     symbols = parse_symbols()
     out_dir = os.environ.get("OUT_DIR", "./data_store")
     feed = parse_feed()
-    regime_symbol = os.environ.get("REGIME_SYMBOL", "SYMBOLS").strip().upper()
+    regime_symbol = os.environ.get("REGIME_SYMBOL", "").strip().upper()  # ✅ empty default
 
     monitor = MarketMonitor(symbols=symbols, out_dir=out_dir, feed=feed, regime_symbol=regime_symbol)
     monitor.run()
