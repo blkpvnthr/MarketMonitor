@@ -5,3 +5,23 @@ session_state/*
 data_store/*
 .vscode/*
 .DS_Store
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.cache/
+
+# Environments
+venv/
+.venv/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
