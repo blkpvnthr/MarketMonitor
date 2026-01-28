@@ -1155,5 +1155,58 @@ document.getElementById("btnBacktest")?.addEventListener("click", async () => {
 
   <!-- Monaco (optional). If you don’t want CDN, skip and use textarea fallback. -->
   <script src="https://unpkg.com/monaco-editor@0.49.0/min/vs/loader.js"></script>
+
+  <script>
+(function () {
+  const token =
+    localStorage.getItem("auth_token") ||
+    sessionStorage.getItem("auth_token");
+
+  const userRaw =
+    localStorage.getItem("auth_user") ||
+    sessionStorage.getItem("auth_user");
+
+  const loginLink  = document.getElementById("loginLink");
+  const logoutLink = document.getElementById("logoutLink");
+  const avatar     = document.getElementById("userAvatar");
+
+  if (token && userRaw) {
+    // ✅ Logged in
+    try {
+      const user = JSON.parse(userRaw);
+
+      if (avatar && user.initials) {
+        avatar.textContent = user.initials.toUpperCase();
+      }
+
+      if (loginLink)  loginLink.style.display = "none";
+      if (logoutLink) logoutLink.style.display = "block";
+    } catch (e) {
+      console.warn("Invalid auth_user, clearing");
+      clearAuth();
+    }
+  } else {
+    // ❌ Logged out
+    if (avatar) avatar.textContent = "--";
+    if (loginLink)  loginLink.style.display = "block";
+    if (logoutLink) logoutLink.style.display = "none";
+  }
+
+  // Logout handler
+  logoutLink?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearAuth();
+    window.location.href = "/login.html";
+  });
+
+  function clearAuth() {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    sessionStorage.removeItem("auth_token");
+    sessionStorage.removeItem("auth_user");
+  }
+})();
+</script>
+
 </body>
 </html>

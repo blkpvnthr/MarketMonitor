@@ -593,6 +593,7 @@
           <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
             <a href="/account.html">Account</a>
             <a href="/settings.html">Settings</a>
+            <a href="/positions.html">Positions</a>
             <a href="/trades.html">Trade Logs</a>
             <a href="/security.html">Security</a>
             <a href="/ideas.html">Ideas</a>
@@ -1290,6 +1291,57 @@ Make sure you serve your CSV folder at:
     // run on load
     hydrateUserAvatar();
   </script>
+<script>
+(function () {
+  const token =
+    localStorage.getItem("auth_token") ||
+    sessionStorage.getItem("auth_token");
+
+  const userRaw =
+    localStorage.getItem("auth_user") ||
+    sessionStorage.getItem("auth_user");
+
+  const loginLink  = document.getElementById("loginLink");
+  const logoutLink = document.getElementById("logoutLink");
+  const avatar     = document.getElementById("userAvatar");
+
+  if (token && userRaw) {
+    // ✅ Logged in
+    try {
+      const user = JSON.parse(userRaw);
+
+      if (avatar && user.initials) {
+        avatar.textContent = user.initials.toUpperCase();
+      }
+
+      if (loginLink)  loginLink.style.display = "none";
+      if (logoutLink) logoutLink.style.display = "block";
+    } catch (e) {
+      console.warn("Invalid auth_user, clearing");
+      clearAuth();
+    }
+  } else {
+    // ❌ Logged out
+    if (avatar) avatar.textContent = "--";
+    if (loginLink)  loginLink.style.display = "block";
+    if (logoutLink) logoutLink.style.display = "none";
+  }
+
+  // Logout handler
+  logoutLink?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearAuth();
+    window.location.href = "/login.html";
+  });
+
+  function clearAuth() {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    sessionStorage.removeItem("auth_token");
+    sessionStorage.removeItem("auth_user");
+  }
+})();
+</script>
 
 </body>
 </html>
