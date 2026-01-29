@@ -42,7 +42,7 @@ The system consists of:
 - **Web UI dashboard** → real-time visualization of session state (read-only)
 
 ___
-### Login Page
+### Login
 <p align="center">
   <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
