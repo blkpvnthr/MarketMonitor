@@ -14,8 +14,21 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
 > - Timeframe gates can be adjusted (e.g. scalping with 1m/3m/5m)
 > - VWAP and regime logic can be swapped or extended
 > - Risk and sizing modules can be tuned per strategy  
->  
 > The system intentionally separates **signal qualification** from **execution**, making it flexible across trading styles.
+
+
+## 🌐 Web UI (Dashboard)
+
+  <p align="center">
+  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="140" alt="MarketMonitor screenshot 1" /></a>
+ <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140" alt="MarketMonitor screenshot 3" /></a>
+  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140" alt="MarketMonitor screenshot 4" /></a>
+  </p>
+  
+
+The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
 
 ---
 
@@ -151,21 +164,6 @@ For `REGIME_SYMBOL`:
 
 - `ADX ≥ 22` → `TREND`, else `RANGE`
 - `ATRP ≥ 0.60%` → `HIGH_VOL`, else `LOW_VOL`
-
----
-
-## 🌐 Web UI (Dashboard)
-
-  <p align="center">
-  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="140" alt="MarketMonitor screenshot 1" /></a>
- <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140" alt="MarketMonitor screenshot 3" /></a>
-  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140" alt="MarketMonitor screenshot 4" /></a>
-  </p>
-  
-
-The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
 
 ---
 
