@@ -1,1015 +1,1347 @@
-import os
-import csv
-import math
-from dataclasses import dataclass, field
-from datetime import datetime
-from zoneinfo import ZoneInfo
-from collections import deque
-from enum import Enum
-from typing import Deque, Dict, Optional, List, Tuple, Any
-from pathlib import Path
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlgoBot • Watchlist</title>
 
-from dotenv import load_dotenv
+  <link rel="stylesheet" href="/includes/CSS/styles.css"/>
+  <link rel="icon" type="image/x-icon" href="../static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
 
-import numpy as np # pyright: ignore[reportMissingImports]
-import pandas as pd # pyright: ignore[reportMissingModuleSource]
+  <style>
+    :root{
+      --bg:#ffffff;
+      --panel: rgba(0,0,0,.03);
+      --panel2: rgba(0,0,0,.05);
+      --text:#0b0f17;
+      --muted: rgba(11,15,23,.62);
+      --line: rgba(0,0,0,.12);
+      --accent:#2563eb;
+      --good:#16a34a;
+      --warn:#d97706;
+      --bad:#dc2626;
+      --shadow:0 14px 40px rgba(0,0,0,.10);
+      --radius:16px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:'Roboto', ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial;
+      color:var(--text);
+      background:var(--bg);
+      min-height:100vh;
+    }
 
-from alpaca.data.live import StockDataStream # pyright: ignore[reportMissingImports]
-from alpaca.data.enums import DataFeed # pyright: ignore[reportMissingImports]
-from alpaca.data.historical import StockHistoricalDataClient # pyright: ignore[reportMissingImports]
-from alpaca.data.requests import StockLatestQuoteRequest # pyright: ignore[reportMissingImports]
+    /* ===== Glass Navbar ===== */
+    .navbar{
+      position:sticky; top:0; z-index:50;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.85);
+      backdrop-filter:blur(10px);
+    }
+    .navbar .navwrap{
+      margin:0 auto;
+      padding:12px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .navwrap{
+      max-width:1600px;
+    }
+    .navLinks{ display:flex; align-items:center; gap:16px; }
+    .navLinks a{ padding:6px 10px; border-radius:10px; }
+    a{ color:#0b0f17 !important; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
 
+    .wrap{ max-width:1200px; margin:0 auto; padding:22px 18px 42px; }
+    /* --- NAVBAR: bulletproof 3-column layout --- */
+    .navwrap{
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 10px 16px;
 
-NY = ZoneInfo("America/New_York")
+      display: grid;
+      grid-template-columns: auto 1fr auto; /* left | center | right */
+      align-items: center;
+      column-gap: 18px;
+    }
+    .navLinks a.active{
+      text-decoration: underline;
+    }
 
+    /* Left */
+    .navLeft{ min-width: 0; }
+    .navTitle{
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      white-space: nowrap;      /* keep brand on one line */
+    }
 
-load_dotenv()
-APCA_API_KEY_ID = os.getenv("APCA_API_KEY_ID", "")
-APCA_API_SECRET_KEY = os.getenv("APCA_API_SECRET_KEY", "")
-APCA_PAPER = os.getenv("APCA_PAPER", "true").lower() == "true"
-if not APCA_API_KEY_ID:
-    raise ValueError("Missing APCA_API_KEY_ID in environment / .env")
-if not APCA_API_SECRET_KEY:
-    raise ValueError("Missing APCA_API_SECRET_KEY in environment / .env")
-WS_URL = os.getenv("ALPACA_WS_URL", "wss://stream.data.alpaca.markets/v2/iex")
-RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "trading-runner:latest")
-WORK_ROOT = Path(os.getenv("WORK_ROOT", "workspaces"))
+    /* Center */
+    .navLinks{
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      min-width: 0;
+    }
+    .navLinks a{ white-space: nowrap; }
 
-# Safety caps
-RUN_TIMEOUT_SEC_DEFAULT = int(os.getenv("RUN_TIMEOUT_SEC", "30"))
-RUN_CPUS = os.getenv("RUN_CPUS", "1.0")
-RUN_MEMORY = os.getenv("RUN_MEMORY", "768m")
-RUN_PIDS = os.getenv("RUN_PIDS", "256")
+    /* Right */
+    .navRight{
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      min-width: 0;
+    }
+    .navSearch{
+      width: min(420px, 34vw);
+      min-width: 260px;
+    }
 
-# -----------------------------
-# Utilities
-# -----------------------------
-def ensure_dir(path: str) -> None:
-    os.makedirs(path, exist_ok=True)
+    /* Left: brand */
+    .navLeft{
+      flex: 0 0 auto;
+      min-width: max-content;
+    }
 
+    /* Middle: links centered (don’t hide them) */
+    .navLinks{
+      flex: 1 1 auto;
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      overflow: visible;       /* IMPORTANT: don’t clip links */
+      min-width: 0;
+    }
 
-def today_yyyymmdd(ts: datetime) -> str:
-    return ts.astimezone(NY).strftime("%Y%m%d")
+    .navLinks a{ white-space: nowrap; }
 
+    /* Right: search + clock + profile pinned right */
+    .navRight{
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-left: auto;
+      min-width: max-content;
+    }
 
-def day_key(ts: datetime) -> Tuple[int, int, int]:
-    t = ts.astimezone(NY)
-    return (t.year, t.month, t.day)
+    .navSearch{
+      width: min(420px, 34vw);
+      min-width: 260px;
+    }
 
+    /* ===== Header ===== */
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      margin:6px 0 14px;
+    }
+    .brand{ display:flex; flex-direction:column; gap:6px; }
+    .brand h1{
+      margin:0;
+      font-size:26px;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .logo{
+      width:36px; height:36px;
+      border-radius:12px;
+      background:linear-gradient(135deg, rgba(37,99,235,.95), rgba(99,102,241,.9));
+      box-shadow:0 10px 22px rgba(37,99,235,.18);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:#fff;
+    }
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+      max-width:740px;
+    }
 
-def safe_float(x) -> float:
-    try:
-        return float(x)
-    except Exception:
-        return float("nan")
+    .status{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.9);
+      box-shadow:var(--shadow);
+      white-space:nowrap;
+      user-select:none;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;
+      background:var(--warn);
+      box-shadow:0 0 0 4px rgba(217,119,6,.18);
+    }
+    .status strong{ font-size:13px; }
+    .status span{ color:var(--muted); font-size:12px; }
 
+    /* ===== Cards / Layout ===== */
+    .grid{
+      display:grid;
+      grid-template-columns:380px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
 
-def env_float(name: str, default: float) -> float:
-    raw = os.environ.get(name, "")
-    if not raw:
-        return default
-    try:
-        return float(raw)
-    except Exception:
-        return default
+    .card{
+      background:rgba(255,255,255,.95);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(0,0,0,.03), transparent);
+      gap:10px;
+    }
+    .card .hd h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.3px;
+      color:rgba(11,15,23,.92);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+    .pill{
+      font-size:12px;
+      color:rgba(11,15,23,.72);
+      border:1px solid var(--line);
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,.03);
+    }
+    .card .bd{ padding:16px; }
 
+    /* ===== Controls ===== */
+    label{
+      display:block;
+      font-size:12px;
+      color:rgba(11,15,23,.70);
+      margin:0 0 6px 2px;
+    }
+    input, select{
+      width:100%;
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.14);
+      background:rgba(255,255,255,.98);
+      color:var(--text);
+      outline:none;
+      transition:.15s ease;
+    }
+    input::placeholder{ color:rgba(11,15,23,.45); }
+    input:focus, select:focus{
+      border-color:rgba(37,99,235,.55);
+      box-shadow:0 0 0 4px rgba(37,99,235,.12);
+    }
+    .row{ display:flex; gap:10px; }
+    .row > * { flex:1; }
 
-def env_bool(name: str, default: bool = False) -> bool:
-    raw = os.environ.get(name, "")
-    if raw == "":
-        return default
-    return raw.strip().lower() in ("1", "true", "yes", "y", "on")
+    button{
+      cursor:pointer;
+      border:1px solid rgba(0,0,0,.14);
+      background:rgba(0,0,0,.03);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius:14px;
+      font-weight:650;
+      letter-spacing:.2px;
+      transition:.15s ease;
+    }
+    button:hover{ transform:translateY(-1px); background:rgba(0,0,0,.05); }
+    button:active{ transform:translateY(0); }
+    .primary{
+      border-color:rgba(37,99,235,.35);
+      background:linear-gradient(135deg, rgba(37,99,235,.10), rgba(99,102,241,.08));
+    }
 
+    .hint{
+      margin-top:10px;
+      color:rgba(11,15,23,.62);
+      font-size:12px;
+      line-height:1.4;
+    }
+    .hint code{
+      padding:2px 6px;
+      border-radius:8px;
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(0,0,0,.03);
+    }
 
-# -----------------------------
-# Bar model
-# -----------------------------
-@dataclass
-class OHLCV:
-    time: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
+    /* ===== Feed ===== */
+    .feed{
+      height:620px;
+      overflow:auto;
+      padding:12px;
+      background:rgba(0,0,0,.02);
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.10);
+    }
+    .feed::-webkit-scrollbar{ width:10px; }
+    .feed::-webkit-scrollbar-thumb{
+      background:rgba(0,0,0,.18);
+      border-radius:999px;
+      border:2px solid rgba(0,0,0,0);
+      background-clip:padding-box;
+    }
+    .evt{
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(255,255,255,.95);
+      border-radius:14px;
+      padding:10px 12px;
+      margin-bottom:10px;
+    }
+    .evt .meta{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:6px;
+      color:rgba(11,15,23,.65);
+      font-size:12px;
+    }
+    pre{
+      margin:0;
+      white-space:pre-wrap;
+      word-break:break-word;
+      font-size:12px;
+      line-height:1.35;
+      color:rgba(11,15,23,.92);
+    }
 
+    /* ===== Top Momentum Card ===== */
+    .topMomentum{
+      margin-bottom:14px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(0,0,0,.02);
+      padding:12px;
+    }
+    .tmHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .tmTitle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .tmMeta{
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .tmGrid{
+      display:grid;
+      grid-template-columns:1fr 260px;
+      gap:12px;
+      align-items:stretch;
+    }
+    @media (max-width:980px){ .tmGrid{ grid-template-columns:1fr; } }
+    .tmChartWrap, .tmStats{
+      border:1px solid rgba(0,0,0,.10);
+      background:rgba(255,255,255,.9);
+      border-radius:14px;
+      padding:10px;
+      overflow:hidden;
+    }
+    .tmStats .r{
+      display:flex;
+      justify-content:space-between;
+      font-size:12px;
+      padding:6px 2px;
+      border-bottom:1px dashed rgba(0,0,0,.10);
+    }
+    .tmStats .r:last-child{ border-bottom:none; }
+    .tmStats .k{ color:rgba(11,15,23,.55); }
+    .tmStats .v{ font-weight:900; }
 
-# -----------------------------
-# Quote model (context only)
-# -----------------------------
-@dataclass
-class QuoteSnap:
-    time: Optional[datetime] = None
-    bid_price: float = float("nan")
-    bid_size: float = float("nan")
-    ask_price: float = float("nan")
-    ask_size: float = float("nan")
+    /* ===== Watchlist Grid ===== */
+    .watchStatus{ margin:8px 0 14px; color:rgba(11,15,23,.65); font-size:12px; }
+    .watchGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+      gap:12px;
+    }
+    .watchTile{
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(0,0,0,.02);
+      border-radius:14px;
+      padding:12px;
+    }
+    .watchHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .watchSym{ font-weight:900; font-size:16px; letter-spacing:.2px; }
+    .stateBadge{
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.14);
+      background:rgba(0,0,0,.03);
+      text-transform:uppercase;
+      user-select:none;
+    }
+    .stateBadge.CONFIRMED{ border-color:rgba(22,163,74,.45); background:rgba(22,163,74,.10); }
+    .stateBadge.ACTIVE{ border-color:rgba(37,99,235,.45); background:rgba(37,99,235,.10); }
+    .stateBadge.RECONSIDER{ border-color:rgba(217,119,6,.45); background:rgba(217,119,6,.10); }
+    .stateBadge.SUSPENDED{ border-color:rgba(220,38,38,.50); background:rgba(220,38,38,.10); }
 
-    @property
-    def mid(self) -> float:
-        if math.isnan(self.bid_price) or math.isnan(self.ask_price):
-            return float("nan")
-        return (self.bid_price + self.ask_price) / 2.0
+    .kvRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      font-size:12px;
+      color:rgba(11,15,23,.88);
+    }
+    .kvRow .k{ color:rgba(11,15,23,.55); }
+    .kvRow .v{ font-weight:750; }
 
-    @property
-    def spread(self) -> float:
-        if math.isnan(self.bid_price) or math.isnan(self.ask_price):
-            return float("nan")
-        return self.ask_price - self.bid_price
+    .vwapRow{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:8px;
+      margin-top:10px;
+    }
+    .vpill{
+      text-align:center;
+      font-size:12px;
+      padding:8px 6px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.12);
+      background:rgba(255,255,255,.95);
+      user-select:none;
+    }
+    .reasonLine{
+      margin-top:10px;
+      font-size:12px;
+      color:rgba(11,15,23,.66);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
-    @property
-    def spread_pct_mid(self) -> float:
-        m = self.mid
-        if math.isnan(m) or m == 0:
-            return float("nan")
-        return (self.spread / m) * 100.0
+    /* ===== Chart Carousel ===== */
+    .card.carousel .bd{ padding:14px; }
+    .carouselViewport{
+      overflow:hidden;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.10);
+      background:rgba(0,0,0,.02);
+    }
+    .carouselTrack{
+      display:flex;
+      width:100%;
+      transform:translateX(0);
+      transition:transform .28s ease;
+      will-change:transform;
+    }
+    .slide{ flex:0 0 100%; width:100%; padding:12px; }
+    .slideInner{
+      width:100%;
+      height:520px;
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(255,255,255,.92);
+      border:1px solid rgba(0,0,0,.10);
+    }
+    .slideInner iframe{ width:100%; height:100%; border:0; display:block; }
 
+    .carouselControls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .iconBtn{ width:34px; height:34px; border-radius:10px; padding:0; font-size:18px; line-height:1; }
+    .dots{ display:flex; gap:6px; align-items:center; }
+    .dotBtn{
+      width:9px; height:9px; border-radius:999px;
+      border:1px solid rgba(0,0,0,.20);
+      background:rgba(0,0,0,.08);
+      padding:0;
+    }
+    .dotBtn.active{ background:rgba(37,99,235,.85); border-color:rgba(37,99,235,.85); }
+    .footbar{
+      display:flex;
+      justify-content:space-between;
+      padding:10px 14px 12px;
+      color:rgba(11,15,23,.62);
+      font-size:12px;
+    }
 
-# -----------------------------
-# Bar aggregation (1m -> tf)  ✅ emits ONLY CLOSED bars
-# -----------------------------
-class BarAggregator:
-    def __init__(self, timeframe_minutes: int):
-        if timeframe_minutes <= 0:
-            raise ValueError("timeframe_minutes must be > 0")
-        self.tf = timeframe_minutes
-        self.current: Optional[OHLCV] = None
-        self.bucket_key: Optional[Tuple[Tuple[int, int, int], int, int]] = None  # (day, hour, bucket_start_min)
+    /* User Menu */
+    .userMenu { position: relative; margin-left: 10px; }
+    .userBtn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 8px;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .userBtn:hover { background: var(--panel); }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .caret { font-size: 10px; opacity: 0.7; }
 
-    def _calc_bucket_key(self, ts: datetime) -> Tuple[Tuple[int, int, int], int, int]:
-        ts = ts.astimezone(NY)
-        d = (ts.year, ts.month, ts.day)
-        hour = ts.hour
-        bucket_start_min = ts.minute - (ts.minute % self.tf)
-        return (d, hour, bucket_start_min)
+    /* Dropdown */
+    .userDropdown {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      min-width: 190px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 6px 0;
+      display: none;
+      z-index: 1000;
+    }
+    .userDropdown a {
+      display: block;
+      padding: 8px 14px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .userDropdown a:hover { background: var(--panel); }
+    .userDropdown .divider { height: 1px; background: var(--line); margin: 6px 0; }
+    .userDropdown .danger { color: var(--bad); }
+  </style>
+</head>
 
-    def update(self, bar_1m: OHLCV) -> Optional[OHLCV]:
-        ts = bar_1m.time.astimezone(NY)
-        key = self._calc_bucket_key(ts)
+<body>
+  <!-- Navbar -->
+  <nav class="navbar" role="navigation" aria-label="Primary">
+    <div class="navwrap">
+      <div class="navLeft">
+        <a href="/" style="text-decoration:none;color:inherit;">
+          <div class="navTitle">
+            <strong>Quantum<span style="font-weight: 100 !important;">Quant</span></strong>
+          </div>
+        </a>
+      </div>
 
-        if self.current is None:
-            self.bucket_key = key
-            self.current = OHLCV(
-                time=ts.replace(second=0, microsecond=0),
-                open=bar_1m.open,
-                high=bar_1m.high,
-                low=bar_1m.low,
-                close=bar_1m.close,
-                volume=bar_1m.volume,
-            )
-            return None
+      <div class="navLinks" aria-label="Quick links">
+        <a href="/index.html" class="active"><span>Dashboard</span></a>
+        <a href="/brokers.html">Brokers</a>
+        <a href="/script.html">Strategy</a>
+        <a href="/backtests.html">Backtests</a>
+      </div>
 
-        if key != self.bucket_key:
-            # ✅ previous is CLOSED
-            finished = self.current
-            self.bucket_key = key
-            self.current = OHLCV(
-                time=ts.replace(second=0, microsecond=0),
-                open=bar_1m.open,
-                high=bar_1m.high,
-                low=bar_1m.low,
-                close=bar_1m.close,
-                volume=bar_1m.volume,
-            )
-            return finished
+      <div class="navRight">
+        <input class="navSearch" id="nav-search" type="text" placeholder="Filter feed (e.g. quote, trade)" />
+        <span class="pill" id="nav-clock">--:--</span>
 
-        # partial update only
-        self.current.high = max(self.current.high, bar_1m.high)
-        self.current.low = min(self.current.low, bar_1m.low)
-        self.current.close = bar_1m.close
-        self.current.volume += bar_1m.volume
-        return None
+        <!-- User Profile -->
+        <div class="userMenu" id="userMenu">
+          <button class="userBtn" id="userBtn" aria-haspopup="true" aria-expanded="false" type="button">
+            <span class="avatar" id="userAvatar">??</span>
+            <span class="caret">▾</span>
+          </button>
 
+          <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
+            <a href="/account.html">Account</a>
+            <a href="/settings.html">Settings</a>
+            <a href="/positions.html">Positions</a>
+            <a href="/trades.html">Trade Logs</a>
+            <a href="/security.html">Security</a>
+            <a href="/ideas.html">Ideas</a>
+            <div class="divider"></div>
+            <a href="/help.html">Help</a>
+            <div class="divider"></div>
+            <a href="/login.html" id="loginLink">Log in</a>
+            <a href="/logout" id="logoutLink" class="danger" style="display:none;">Log out</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
 
-# -----------------------------
-# Features (computed only from CLOSED bars)
-# -----------------------------
-class RollingSeries:
-    def __init__(self, maxlen: int = 1200):
-        self.bars: Deque[OHLCV] = deque(maxlen=maxlen)
-        self._vwap_day: Optional[Tuple[int, int, int]] = None
-        self._cum_pv: float = 0.0
-        self._cum_v: float = 0.0
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1><span class="logo">⚡</span>Market Screener</h1>
+        <p class="subtitle">
+          Trade-worthy tickers from your<code>.env</code>  file <code>SYMBOLS</code> definition.
+          Grid shows today's top tickers, sorted by <strong>return</strong>.
+        </p>
+      </div>
 
-    def add(self, bar: OHLCV) -> None:
-        self.bars.append(bar)
+      <div class="status" title="Data status">
+        <span class="dot" id="ws-dot"></span>
+        <div style="display:flex; flex-direction:column; line-height:1.1;">
+          <strong id="ws-state">Loading…</strong>
+          <span id="ws-detail">Reading session_state</span>
+        </div>
+      </div>
+    </header>
 
-        dk = day_key(bar.time)
-        if self._vwap_day != dk:
-            self._vwap_day = dk
-            self._cum_pv = 0.0
-            self._cum_v = 0.0
+    <!-- Top: Chart Carousel -->
+    <section class="card carousel" aria-label="Market charts carousel">
+      <div class="hd">
+        <h2>📊 Market Charts</h2>
+        <div class="carouselControls">
+          <button class="iconBtn" type="button" id="chartPrev" aria-label="Previous chart">‹</button>
+          <div class="dots" id="chartDots" aria-label="Chart navigation dots"></div>
+          <button class="iconBtn" type="button" id="chartNext" aria-label="Next chart">›</button>
+          <span class="pill" id="chartLabel">Loading…</span>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="carouselViewport">
+          <div class="carouselTrack" id="chartTrack"></div>
+        </div>
+      </div>
+      <div class="footbar">
+        <small class="kbdHint">Use ← → keys</small>
+        <small id="chartCount">0 / 0</small>
+      </div>
+    </section>
 
-        tp = (bar.high + bar.low + bar.close) / 3.0
-        v = float(bar.volume) if bar.volume is not None else 0.0
-        if not math.isnan(tp) and not math.isnan(v) and v > 0:
-            self._cum_pv += tp * v
-            self._cum_v += v
+    <div class="grid">
+      <!-- LEFT: Activity Feed -->
+      <section class="card" aria-label="Activity Feed">
+        <div class="hd">
+          <h2>📟 Activity Feed</h2>
+          <span class="pill" id="feedPill">Local</span>
+        </div>
+        <div class="bd">
+          <div class="feed" id="feed">
+            <div class="evt">
+              <div class="meta">
+                <span class="tag">Tip</span>
+                <span id="nowTs">—</span>
+              </div>
+              <pre>
+This page reads:
+  /data_store/session_state/session_state_YYYYMMDD.csv
 
-    def current_vwap(self) -> float:
-        if self._cum_v <= 0:
-            return float("nan")
-        return float(self._cum_pv / self._cum_v)
+Make sure you serve your CSV folder at:
+  /data_store
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    def _to_df(self) -> pd.DataFrame:
-        if not self.bars:
-            return pd.DataFrame()
-        df = pd.DataFrame([{
-            "time": b.time,
-            "open": b.open,
-            "high": b.high,
-            "low": b.low,
-            "close": b.close,
-            "volume": b.volume,
-        } for b in self.bars]).set_index("time")
-        return df
+      <!-- RIGHT: Watchlist -->
+      <section class="card" aria-label="Watchlist">
+        <div class="hd">
+          <h2>🧾 Watchlist Grid</h2>
+          <span class="pill" id="datePill">—</span>
+        </div>
 
-    @staticmethod
-    def _rsi(close: pd.Series, period: int = 14) -> float:
-        if len(close) < period + 1:
-            return float("nan")
-        delta = close.diff()
-        gain = delta.clip(lower=0).rolling(period).mean()
-        loss = (-delta.clip(upper=0)).rolling(period).mean()
-        rs = gain / loss.replace({0: np.nan})
-        rsi = 100 - (100 / (1 + rs))
-        return float(rsi.iloc[-1])
+        <div class="bd">
+          <!-- Top Momentum -->
+          <div class="topMomentum" id="topMomentum" style="display:none;">
+            <div class="tmHead">
+              <div class="tmTitle">📈 Top Long Momentum <span class="pill" id="tmSym">—</span></div>
+              <span class="pill" id="tmMode">Long_only • 5m/30m/1h</span>
+            </div>
+            <div class="tmMeta" id="tmMeta">—</div>
+            <div class="tmGrid">
+              <div class="tmChartWrap"><div id="tmChart"></div></div>
+              <div class="tmStats" id="tmStats"></div>
+            </div>
+          </div>
 
-    @staticmethod
-    def _atr(df: pd.DataFrame, period: int = 14) -> float:
-        if len(df) < period + 1:
-            return float("nan")
-        high = df["high"]
-        low = df["low"]
-        close = df["close"]
-        prev_close = close.shift(1)
-        tr = pd.concat([
-            (high - low),
-            (high - prev_close).abs(),
-            (low - prev_close).abs(),
-        ], axis=1).max(axis=1)
-        atr = tr.rolling(period).mean()
-        return float(atr.iloc[-1])
+          <div class="row" style="margin-bottom:12px;">
+            <div>
+              <label>Search</label>
+              <input id="searchSym" placeholder="QQQ, NVDA, AAPL…" />
+            </div>
+            <div style="flex:0 0 140px;">
+              <label>&nbsp;</label>
+              <button class="primary" id="refreshBtn" style="width:100%;">Refresh</button>
+            </div>
+          </div>
 
-    @staticmethod
-    def _adx(df: pd.DataFrame, period: int = 14) -> float:
-        if len(df) < period * 2 + 2:
-            return float("nan")
+          <div class="watchStatus" id="watchStatus">—</div>
+          <div class="watchGrid" id="watchlistGrid"></div>
 
-        high = df["high"]
-        low = df["low"]
-        close = df["close"]
+          <div class="hint">
+            Data path: <code>/data_store/session_state/session_state_YYYYMMDD.csv</code> (NY date).<br/>
+            Optional: define a watchlist via <code>window.WATCHLIST = "QQQ,NVDA,AAPL"</code>.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
 
-        up_move = high.diff()
-        down_move = -low.diff()
+  <script>
+    // ===== Config =====
+    const DATA_ROOT = "/data_store";
 
-        plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
-        minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
+    // Optional watchlist:
+    // window.WATCHLIST = "QQQ,NVDA,AAPL,TQQQ,IONQ,QBTS";
+    const WATCHLIST = (window.WATCHLIST ?? "")
+      ? (Array.isArray(window.WATCHLIST) ? window.WATCHLIST : String(window.WATCHLIST).split(","))
+          .map(s => s.trim().toUpperCase())
+          .filter(Boolean)
+      : null;
 
-        prev_close = close.shift(1)
-        tr = pd.concat([
-            (high - low),
-            (high - prev_close).abs(),
-            (low - prev_close).abs(),
-        ], axis=1).max(axis=1)
+    // ===== Helpers =====
+    function nyDateYYYYMMDD() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/New_York",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date()).replaceAll("-", "");
+    }
 
-        alpha = 1.0 / period
-        atr = tr.ewm(alpha=alpha, adjust=False).mean()
-        plus_dm_s = pd.Series(plus_dm, index=df.index).ewm(alpha=alpha, adjust=False).mean()
-        minus_dm_s = pd.Series(minus_dm, index=df.index).ewm(alpha=alpha, adjust=False).mean()
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let inQuotes = false;
 
-        plus_di = 100.0 * (plus_dm_s / atr.replace({0: np.nan}))
-        minus_di = 100.0 * (minus_dm_s / atr.replace({0: np.nan}))
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i + 1];
 
-        dx = 100.0 * ((plus_di - minus_di).abs() / (plus_di + minus_di).replace({0: np.nan}))
-        adx = dx.ewm(alpha=alpha, adjust=False).mean()
-        return float(adx.iloc[-1])
+        if (c === '"' && inQuotes && next === '"') { cell += '"'; i++; }
+        else if (c === '"') { inQuotes = !inQuotes; }
+        else if (c === "," && !inQuotes) { row.push(cell); cell = ""; }
+        else if (c === "\n" && !inQuotes) { row.push(cell); rows.push(row); row = []; cell = ""; }
+        else if (c !== "\r") { cell += c; }
+      }
+      if (cell.length || row.length) { row.push(cell); rows.push(row); }
+      return rows.filter(r => r.some(v => String(v).trim() !== ""));
+    }
 
-    def compute_features(self) -> Dict[str, float]:
-        df = self._to_df()
-        if df.empty or len(df) < 3:
-            return {}
+    function rowsToObjects(rows) {
+      if (!rows.length) return [];
+      const header = rows[0].map(h => String(h).trim());
+      return rows.slice(1).map(cols => {
+        const o = {};
+        header.forEach((h, i) => (o[h] = cols[i] ?? ""));
+        return o;
+      });
+      }
 
-        close = df["close"]
-        volume = df["volume"]
+    function latestBySymbol(objs) {
+      const map = new Map();
+      for (const r of objs) {
+        const sym = String(r.symbol || "").toUpperCase();
+        if (!sym) continue;
+        map.set(sym, r); // last row wins
+      }
+      return map;
+    }
 
-        ret_1 = float((close.iloc[-1] / close.iloc[-2]) - 1.0) if close.iloc[-2] else float("nan")
-        ema_20 = float(close.ewm(span=20, adjust=False).mean().iloc[-1]) if len(close) >= 5 else float("nan")
-        ema_50 = float(close.ewm(span=50, adjust=False).mean().iloc[-1]) if len(close) >= 5 else float("nan")
-        rsi_14 = self._rsi(close, 14)
+    function n(x, fallback = NaN) {
+      const v = Number(x);
+      return Number.isFinite(v) ? v : fallback;
+    }
 
-        atr_14 = self._atr(df, 14)
-        atrp_14 = float((atr_14 / close.iloc[-1]) * 100.0) if close.iloc[-1] else float("nan")
-        adx_14 = self._adx(df, 14)
+    function fmtPct(x) {
+      if (!Number.isFinite(x)) return "—";
+      const sign = x > 0 ? "+" : "";
+      return `${sign}${x.toFixed(2)}%`;
+    }
 
-        vwap = self.current_vwap()
-        vwap_dist_pct = float(((close.iloc[-1] - vwap) / vwap) * 100.0) if vwap and not math.isnan(vwap) else float("nan")
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
 
-        vol_roll = volume.rolling(20)
-        vol_mean = vol_roll.mean().iloc[-1]
-        vol_std = vol_roll.std(ddof=0).iloc[-1]
-        vol_z_20 = float((volume.iloc[-1] - vol_mean) / vol_std) if vol_std and not math.isnan(vol_std) else float("nan")
+    function nowLocal(){ return new Date().toLocaleString(); }
 
-        return {
-            "ret_1": ret_1,
-            "ema_20": ema_20,
-            "ema_50": ema_50,
-            "rsi_14": rsi_14,
-            "atr_14": atr_14,
-            "atrp_14": atrp_14,
-            "adx_14": adx_14,
-            "vwap": vwap,
-            "vwap_dist_pct": vwap_dist_pct,
-            "vol_z_20": vol_z_20,
+    // ===== Feed =====
+    function pushFeedEvent({ tag = "INFO", text = "" }) {
+      const feed = document.getElementById("feed");
+      if (!feed) return;
+
+      const evt = document.createElement("div");
+      evt.className = "evt";
+      evt.innerHTML = `
+        <div class="meta">
+          <span class="tag">${escapeHtml(tag)}</span>
+          <span>${escapeHtml(nowLocal())}</span>
+        </div>
+        <pre>${escapeHtml(text)}</pre>
+      `;
+
+      feed.prepend(evt);
+      while (feed.children.length > 30) feed.removeChild(feed.lastChild);
+    }
+
+    // ✅ Dedup feed lines: only emit when state/reason/score/bias changes
+    const FEED_LAST = new Map(); // sym -> signature
+    function emitFeedFromRows(rows) {
+      if (!rows.length) return;
+      const header = rows[0];
+      const idx = Object.fromEntries(header.map((h, i) => [String(h), i]));
+
+      rows.slice(1).forEach(r => {
+        const sym   = String(r[idx.symbol] || "").toUpperCase();
+        const state = String(r[idx.state] || "");
+        const score = String(r[idx.score] || "");
+        const bias  = String(r[idx.bias] || "");
+        const why   = String(r[idx.reason] || "");
+
+        if (!sym || !state) return;
+
+        // keep these tags only (same behavior as before)
+        if (state !== "CONFIRMED" && state !== "RECONSIDER") return;
+
+        const sig = `${state}|${score}|${bias}|${why}`;
+        if (FEED_LAST.get(sym) === sig) return;
+        FEED_LAST.set(sym, sig);
+
+        pushFeedEvent({
+          tag: state,
+          text: `${sym}\nstate=${state}\nscore=${score}\nbias=${bias}\n\n${why || ""}`
+        });
+      });
+    }
+
+    // ===== UI bits =====
+    function tileHTML(sym, r) {
+      const state = String(r.state || "—").toUpperCase();
+      const score = n(r.score);
+      const risk  = n(r.risk_mult);
+      const flips = n(r.flip_count, 0);
+
+      const v5  = n(r.vwap_dist_5m);
+      const v15 = n(r.vwap_dist_15m);
+      const v30 = n(r.vwap_dist_30m);
+      const v1h = n(r.vwap_dist_1h);
+
+      const reason = r.reason || "";
+
+      return `
+        <div class="watchTile" data-sym="${escapeHtml(sym)}">
+          <div class="watchHead">
+            <div class="watchSym">${escapeHtml(sym)}</div>
+            <div class="stateBadge ${escapeHtml(state)}">${escapeHtml(state)}</div>
+          </div>
+
+          <div class="kvRow">
+            <span><span class="k">score</span> <span class="v">${Number.isFinite(score) ? score.toFixed(3) : "—"}</span></span>
+            <span><span class="k">bias</span> <span class="v">${escapeHtml(r.bias || "—")}</span></span>
+            <span><span class="k">risk</span> <span class="v">${Number.isFinite(risk) ? risk.toFixed(2) : "—"}</span></span>
+            <span><span class="k">flips</span> <span class="v">${flips}</span></span>
+          </div>
+
+          <div class="vwapRow">
+            <div class="vpill">5m ${fmtPct(v5)}</div>
+            <div class="vpill">15m ${fmtPct(v15)}</div>
+            <div class="vpill">30m ${fmtPct(v30)}</div>
+            <div class="vpill">1h ${fmtPct(v1h)}</div>
+          </div>
+
+          <div class="reasonLine" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>
+        </div>
+      `;
+    }
+
+    function isLongOnly(r) {
+      const b = String(r.bias || "").trim().toLowerCase();
+      return b === "long_only" || b === "long-only" || b === "long only" || b === "long";
+    }
+
+    function isSuspended(r){
+      return String(r?.state || "").trim().toUpperCase() === "SUSPENDED";
+    }
+
+    function setStatus(ok, title, detail) {
+      const dot = document.getElementById("ws-dot");
+      const state = document.getElementById("ws-state");
+      const det = document.getElementById("ws-detail");
+
+      if (dot) {
+        dot.style.background = ok ? "var(--good)" : "var(--bad)";
+        dot.style.boxShadow = ok
+          ? "0 0 0 4px rgba(52,211,153,.18)"
+          : "0 0 0 4px rgba(251,113,133,.18)";
+      }
+      if (state) state.textContent = title;
+      if (det) det.textContent = detail;
+    }
+
+    function bestFromFirstGrid(gridItems){
+      if (!gridItems || !gridItems.length) return null;
+
+      const { sym, r } = gridItems[0];
+
+      const p5  = n(r.vwap_dist_5m);
+      const p30 = n(r.vwap_dist_30m);
+      const p1h = n(r.vwap_dist_1h);
+
+      return {
+        sym,
+        r,
+        p5,
+        p30,
+        p1h,
+        score: [p5, p30, p1h].filter(Number.isFinite).reduce((a,b)=>a+b, 0),
+      };
+    }
+
+    function sparklineSVG(values, { w = 520, h = 140, pad = 12 } = {}) {
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const span = (max - min) || 1;
+      const xStep = (w - pad*2) / (values.length - 1 || 1);
+
+      const pts = values.map((v, i) => {
+        const x = pad + i * xStep;
+        const y = pad + (h - pad*2) * (1 - ((v - min) / span));
+        return [x, y];
+      });
+
+      const d = pts.map(([x,y], i) => (i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`)).join(" ");
+
+      let zeroY = null;
+      if (min <= 0 && max >= 0) zeroY = pad + (h - pad*2) * (1 - ((0 - min) / span));
+
+      return `
+        <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Momentum sparkline">
+          <rect x="0" y="0" width="${w}" height="${h}" rx="14" ry="14" fill="rgba(0,0,0,.02)"></rect>
+          ${zeroY !== null ? `<line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="rgba(0,0,0,.15)" stroke-dasharray="6 6" />` : ""}
+          <path d="${d}" fill="none" stroke="rgba(37,99,235,.95)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+          ${pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.2" fill="rgba(37,99,235,.95)"></circle>`).join("")}
+          <text x="${pad}" y="${h - 10}" font-size="12" fill="rgba(11,15,23,.65)">5m</text>
+          <text x="${w/2}" y="${h - 10}" font-size="12" text-anchor="middle" fill="rgba(11,15,23,.65)">30m</text>
+          <text x="${w-pad}" y="${h - 10}" font-size="12" text-anchor="end" fill="rgba(11,15,23,.65)">1h</text>
+        </svg>`;
+    }
+
+    function renderTopMomentumCard(best, modeLabel = "grid-first") {
+      const wrap = document.getElementById("topMomentum");
+      const tmSym = document.getElementById("tmSym");
+      const tmMeta = document.getElementById("tmMeta");
+      const tmChart = document.getElementById("tmChart");
+      const tmStats = document.getElementById("tmStats");
+      if (!wrap || !tmSym || !tmMeta || !tmChart || !tmStats) return;
+
+      if (!best) { wrap.style.display = "none"; return; }
+
+      wrap.style.display = "";
+      tmSym.textContent = best.sym;
+      tmMeta.textContent =
+        `Composite(${modeLabel})=${best.score.toFixed(2)} • 5m ${fmtPct(best.p5)} • 30m ${fmtPct(best.p30)} • 1h ${fmtPct(best.p1h)}`;
+
+      tmChart.innerHTML = sparklineSVG([best.p5, best.p30, best.p1h], { h: 150 });
+
+      tmStats.innerHTML = `
+        <div class="r"><span class="k">Symbol</span><span class="v">${escapeHtml(best.sym)}</span></div>
+        <div class="r"><span class="k">Bias</span><span class="v">${escapeHtml(best.r.bias || "—")}</span></div>
+        <div class="r"><span class="k">State</span><span class="v">${escapeHtml(best.r.state || "—")}</span></div>
+        <div class="r"><span class="k">Score</span><span class="v">${Number.isFinite(n(best.r.score)) ? n(best.r.score).toFixed(3) : "—"}</span></div>
+        <div class="r"><span class="k">5m</span><span class="v">${fmtPct(best.p5)}</span></div>
+        <div class="r"><span class="k">30m</span><span class="v">${fmtPct(best.p30)}</span></div>
+        <div class="r"><span class="k">1h</span><span class="v">${fmtPct(best.p1h)}</span></div>
+      `;
+    }
+
+    // ===== TradingView Carousel =====
+    const chartTrack = document.getElementById("chartTrack");
+    const chartDots  = document.getElementById("chartDots");
+    const chartPrev  = document.getElementById("chartPrev");
+    const chartNext  = document.getElementById("chartNext");
+    const chartLabel = document.getElementById("chartLabel");
+    const chartCount = document.getElementById("chartCount");
+
+    let charts = [];
+    let chartIndex = 0;
+    let lastChartsKey = "";
+
+    function tvSrc(symbol){
+      const params = new URLSearchParams({
+        symbol,
+        interval: "5",
+        hidesidetoolbar: "1",
+        symboledit: "0",
+        saveimage: "0",
+        toolbarbg: "#0b1220",
+        studies: "[]",
+        theme: "dark",
+        style: "1",
+        timezone: "Etc/UTC",
+        withdateranges: "1",
+        hidevolume: "0",
+        hidelegend: "0",
+        enable_publishing: "0",
+      });
+      return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+    }
+
+    function goTo(i){
+      if (!charts.length) return;
+      chartIndex = (i + charts.length) % charts.length;
+      updateCarousel();
+    }
+
+    function updateCarousel(){
+      if (!chartTrack || !chartDots) return;
+
+      if (!charts.length){
+        if (chartLabel) chartLabel.textContent = "—";
+        if (chartCount) chartCount.textContent = "0 / 0";
+        return;
+      }
+
+      chartTrack.style.transform = `translateX(-${chartIndex * 100}%)`;
+      [...chartDots.children].forEach((d, i) => d.classList.toggle("active", i === chartIndex));
+
+      const cur = charts[chartIndex];
+      if (chartLabel) chartLabel.textContent = `${cur.name} • ${cur.symbol}`;
+      if (chartCount) chartCount.textContent = `${chartIndex + 1} / ${charts.length}`;
+    }
+
+    function renderCarousel(){
+      if (!chartTrack || !chartDots) return;
+
+      chartTrack.innerHTML = "";
+      chartDots.innerHTML = "";
+
+      if (!charts.length){
+        chartTrack.innerHTML = `
+          <div class="slide">
+            <div class="slideInner" style="display:flex;align-items:center;justify-content:center;">
+              <span class="pill">No LONG_ONLY tickers with +15m yet</span>
+            </div>
+          </div>`;
+        updateCarousel();
+        return;
+      }
+
+      charts.forEach((c, i) => {
+        const slide = document.createElement("div");
+        slide.className = "slide";
+        slide.setAttribute("role", "group");
+        slide.setAttribute("aria-label", `${i+1} of ${charts.length}: ${c.name}`);
+
+        const inner = document.createElement("div");
+        inner.className = "slideInner";
+
+        const iframe = document.createElement("iframe");
+        iframe.loading = "lazy";
+        iframe.title = `${c.name} chart`;
+        iframe.allowFullscreen = true;
+        iframe.src = tvSrc(c.symbol);
+
+        inner.appendChild(iframe);
+        slide.appendChild(inner);
+        chartTrack.appendChild(slide);
+
+        const dot = document.createElement("button");
+        dot.className = "dotBtn";
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Go to ${c.name}`);
+        dot.addEventListener("click", () => goTo(i));
+        chartDots.appendChild(dot);
+      });
+
+      updateCarousel();
+    }
+
+    function syncCarouselFromGridItems(gridItems){
+      const next = gridItems.map(({ sym }) => ({ name: sym, symbol: sym }));
+      const key = next.map(x => x.symbol).join("|");
+      if (key === lastChartsKey) return;
+
+      const keepSym = charts[chartIndex]?.symbol;
+      charts = next;
+      lastChartsKey = key;
+
+      if (charts.length){
+        const keepIdx = keepSym ? charts.findIndex(c => c.symbol === keepSym) : -1;
+        chartIndex = keepIdx >= 0 ? keepIdx : 0;
+      } else chartIndex = 0;
+
+      renderCarousel();
+    }
+
+    chartPrev?.addEventListener("click", () => goTo(chartIndex - 1));
+    chartNext?.addEventListener("click", () => goTo(chartIndex + 1));
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") goTo(chartIndex - 1);
+      if (e.key === "ArrowRight") goTo(chartIndex + 1);
+    });
+
+    // ===== Main refresh =====
+    async function refreshWatchlist() {
+      const date = nyDateYYYYMMDD();
+      const datePill = document.getElementById("datePill");
+      if (datePill) datePill.textContent = `NY ${date}`;
+
+      const url = `${DATA_ROOT}/session_state/session_state_${date}.csv`;
+      const gridEl = document.getElementById("watchlistGrid");
+      const watchStatus = document.getElementById("watchStatus");
+      if (!gridEl) return;
+
+      try {
+        setStatus(false, "Loading…", `Fetching ${url}`);
+        const resp = await fetch(url, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+
+        const text = await resp.text();
+        const rows = parseCSV(text);
+        const objs = rowsToObjects(rows);
+        const latest = latestBySymbol(objs);
+
+        const itemsAll = Array.from(latest.entries()).map(([sym, r]) => ({ sym, r }));
+        const total = itemsAll.length;
+
+        const ts = document.getElementById("nowTs");
+        if (ts) ts.textContent = nowLocal();
+
+        emitFeedFromRows(rows);
+
+        // Grid rules:
+        // LONG_ONLY + positive 15m, sorted 15m desc; optional WATCHLIST; optional search
+        const q = (document.getElementById("searchSym")?.value || "").trim().toUpperCase();
+
+        let gridItems = itemsAll.filter(({ sym, r }) => {
+          if (WATCHLIST && !WATCHLIST.includes(sym)) return false;
+          if (!isLongOnly(r)) return false;
+
+          if (isSuspended(r)) return false;
+
+          const p15 = n(r.vwap_dist_15m);
+          if (!Number.isFinite(p15) || p15 <= 0) return false;
+
+          if (q && !sym.includes(q)) return false;
+          return true;
+        });
+
+        gridItems.sort((a, b) => n(b.r.vwap_dist_15m) - n(a.r.vwap_dist_15m));
+
+        // Render grid
+        gridEl.innerHTML = gridItems.map(({ sym, r }) => tileHTML(sym, r)).join("");
+
+        // Top momentum = first grid item
+        const best = bestFromFirstGrid(gridItems);
+        renderTopMomentumCard(best, "grid-first");
+
+        // Carousel = same tickers as grid
+        syncCarouselFromGridItems(gridItems);
+
+        if (gridItems.length) {
+          chartIndex = 0;
+          updateCarousel();
         }
 
-
-# -----------------------------
-# Eligibility Engine (closed bars only) + VWAP checkpoint rules
-# -----------------------------
-class CandidateState(str, Enum):
-    ACTIVE = "ACTIVE"
-    SUSPENDED = "SUSPENDED"
-    RECONSIDER = "RECONSIDER"
-    CONFIRMED = "CONFIRMED"
-
-
-class DirectionBias(str, Enum):
-    LONG_ONLY = "LONG_ONLY"
-    SHORT_ONLY = "SHORT_ONLY"
-    BOTH = "BOTH"
-
-
-@dataclass
-class SymbolSession:
-    state: CandidateState = CandidateState.ACTIVE
-    dir_5m: List[int] = field(default_factory=list)
-    flip_count: int = 0
-    score: float = 1.0
-
-
-    vwap_dist_5m: float = float("nan")
-    vwap_dist_15m: float = float("nan")
-    vwap_dist_30m: float = float("nan")
-    vwap_dist_1h: float = float("nan")
-
-    bias: DirectionBias = DirectionBias.BOTH
-    allow_trend: bool = True
-    allow_mean_reversion: bool = True
-    sizing_mult: float = 1.0
-
-    dir_15m: int = 0
-    dir_30m: int = 0
-    last_reason: str = ""
-
-def candle_dir(open_: float, close: float, min_body_pct: float = 0.0005) -> int:
-    if open_ <= 0 or math.isnan(open_) or math.isnan(close):
-        return 0
-    body = (close - open_) / open_
-    if body >= min_body_pct:
-        return +1
-    if body <= -min_body_pct:
-        return -1
-    return 0
-
-
-class EligibilityEngine:
-    def __init__(
-        self,
-        vwap_extreme_dist_pct: float = 1.25,
-        vwap_near_pct: float = 0.10,
-        min_body_pct: float = 0.0005,
-        max_initial_5m_bars: int = 6,
-    ):
-        self.vwap_extreme_dist_pct = vwap_extreme_dist_pct
-        self.vwap_near_pct = vwap_near_pct
-        self.min_body_pct = min_body_pct
-        self.max_initial_5m_bars = max_initial_5m_bars
-        self.sessions: Dict[str, SymbolSession] = {}
-
-    def session(self, symbol: str) -> SymbolSession:
-        if symbol not in self.sessions:
-            self.sessions[symbol] = SymbolSession()
-        return self.sessions[symbol]
-
-    def risk_multiplier(self, symbol: str) -> float:
-        s = self.session(symbol)
-        if s.state == CandidateState.SUSPENDED:
-            return 0.0
-        if s.state == CandidateState.RECONSIDER:
-            base = 0.5
-        elif s.state == CandidateState.ACTIVE:
-            base = 0.75
-        else:
-            base = 1.0
-        return float(base * s.sizing_mult)
-
-    def update_on_5m_close(self, symbol: str, bar5: OHLCV, vwap_dist_pct_5m: float, bar_index_5m: int) -> SymbolSession:
-        s = self.session(symbol)
-        s.vwap_dist_5m = float(vwap_dist_pct_5m) if vwap_dist_pct_5m is not None else float("nan")
-
-        d = candle_dir(bar5.open, bar5.close, self.min_body_pct)
-
-        if len(s.dir_5m) < self.max_initial_5m_bars:
-            if s.dir_5m and d != 0 and s.dir_5m[-1] != 0 and d != s.dir_5m[-1]:
-                s.flip_count += 1
-            s.dir_5m.append(d)
-
-        # 5m#1: extreme dislocation filter only
-        # 5m#1: extreme dislocation filter only
-        if bar_index_5m == 1:
-            if not math.isnan(s.vwap_dist_5m) and abs(s.vwap_dist_5m) >= self.vwap_extreme_dist_pct:
-                s.score *= 0.25
-                s.state = CandidateState.SUSPENDED
-                s.last_reason = f"Suspended: 5m#1 extreme VWAP dislocation ({s.vwap_dist_5m:.2f}%)"
-                return s
-            s.last_reason = "5m#1 ok (no extreme VWAP dislocation)"
-            return s
-
-
-        # 5m#2: flip logic, VWAP context (near VWAP = open chop)
-        if bar_index_5m == 2 and len(s.dir_5m) >= 2:
-            d1, d2 = s.dir_5m[0], s.dir_5m[1]
-            if d1 != 0 and d2 != 0 and d1 != d2:
-                near_vwap = (not math.isnan(s.vwap_dist_5m)) and (abs(s.vwap_dist_5m) <= self.vwap_near_pct)
-                s.score *= 0.40 if near_vwap else 0.55
-                s.state = CandidateState.SUSPENDED
-                s.last_reason = (
-                    f"Suspended: 5m#1/#2 conflict + near VWAP ({s.vwap_dist_5m:.2f}%)"
-                    if near_vwap else
-                    f"Suspended: 5m#1/#2 conflict (VWAP dist {s.vwap_dist_5m:.2f}%)"
-                )
-                return s
-
-
-        # Chop penalty: many flips early -> disable trend families
-        if len(s.dir_5m) >= 4 and s.flip_count >= 3:
-            s.score *= 0.80
-            s.allow_trend = False
-            s.allow_mean_reversion = True
-            s.last_reason = f"Chop detected: flip_count={s.flip_count}; trend disabled"
-
-
-        return s
-
-    def update_on_15m_close(self, symbol: str, bar15: OHLCV, vwap_dist_pct_15m: float) -> SymbolSession:
-        s = self.session(symbol)
-        s.vwap_dist_15m = float(vwap_dist_pct_15m) if vwap_dist_pct_15m is not None else float("nan")
-        s.dir_15m = candle_dir(bar15.open, bar15.close, self.min_body_pct)
-
-        # Bias from VWAP
-        if not math.isnan(s.vwap_dist_15m):
-            if s.vwap_dist_15m > self.vwap_near_pct:
-                s.bias = DirectionBias.LONG_ONLY
-            elif s.vwap_dist_15m < -self.vwap_near_pct:
-                s.bias = DirectionBias.SHORT_ONLY
-            else:
-                s.bias = DirectionBias.BOTH
-
-        # near VWAP -> favor reversion
-        near_vwap = (not math.isnan(s.vwap_dist_15m)) and (abs(s.vwap_dist_15m) <= self.vwap_near_pct)
-        if near_vwap:
-            s.allow_mean_reversion = True
-            if s.flip_count >= 2:
-                s.allow_trend = False
-            s.last_reason = f"15m near VWAP ({s.vwap_dist_15m:.2f}%): bias=BOTH; favor reversion"
-        else:
-            s.allow_trend = (s.flip_count < 3)
-            s.allow_mean_reversion = True
-            s.last_reason = f"15m bias={s.bias.value} from VWAP ({s.vwap_dist_15m:.2f}%)"
-
-        # Dynamic reconsider rule
-        if s.state == CandidateState.SUSPENDED and s.dir_15m != 0:
-            s.score *= 1.15
-            s.state = CandidateState.RECONSIDER
-            s.last_reason = f"Reconsider: 15m candle directional (dir_15m={s.dir_15m})"
-
-
-        return s
-
-    def update_on_30m_close(self, symbol: str, bar30: OHLCV, vwap_dist_pct_30m: float) -> SymbolSession:
-        s = self.session(symbol)
-        s.vwap_dist_30m = float(vwap_dist_pct_30m) if vwap_dist_pct_30m is not None else float("nan")
-        s.dir_30m = candle_dir(bar30.open, bar30.close, self.min_body_pct)
-
-        if s.state == CandidateState.SUSPENDED and s.dir_30m != 0:
-            s.state = CandidateState.RECONSIDER
-            s.last_reason = f"Reconsider: 30m candle directional (dir_30m={s.dir_30m})"
-
-        aligns_with_vwap: Optional[bool] = None
-        if not math.isnan(s.vwap_dist_30m):
-            if s.dir_30m > 0:
-                aligns_with_vwap = (s.vwap_dist_30m > self.vwap_near_pct)
-            elif s.dir_30m < 0:
-                aligns_with_vwap = (s.vwap_dist_30m < -self.vwap_near_pct)
-
-        if s.dir_30m == 0:
-            near_vwap = (not math.isnan(s.vwap_dist_30m)) and (abs(s.vwap_dist_30m) <= self.vwap_near_pct)
-            if near_vwap:
-                s.allow_trend = False
-                s.allow_mean_reversion = True
-                if s.state != CandidateState.SUSPENDED:
-                    s.state = CandidateState.RECONSIDER
-                s.last_reason = f"30m neutral + near VWAP ({s.vwap_dist_30m:.2f}%): trend blocked"
-            else:
-                s.last_reason = "30m neutral: no confirmation"
-            return s
-
-        if aligns_with_vwap is False:
-            s.score *= 0.70
-            s.allow_trend = False
-            s.allow_mean_reversion = True
-            if s.state != CandidateState.SUSPENDED:
-                s.state = CandidateState.RECONSIDER
-            s.last_reason = f"30m fights VWAP ({s.vwap_dist_30m:.2f}%): trend blocked; RECONSIDER"
-            return s
-
-        # Direction aligns with VWAP (or VWAP unknown) -> confirm if not too choppy
-        if s.flip_count <= 3:
-            s.score *= 1.20
-            s.state = CandidateState.CONFIRMED
-        else:
-            s.score *= 0.90
-            s.state = CandidateState.RECONSIDER
-            s.allow_trend = False
-            s.allow_mean_reversion = True
-            s.last_reason = f"30m confirms but choppy (flips={s.flip_count}): trend blocked"
-
-        # Bias lock
-        if not math.isnan(s.vwap_dist_30m):
-            if s.vwap_dist_30m > self.vwap_near_pct:
-                s.bias = DirectionBias.LONG_ONLY
-            elif s.vwap_dist_30m < -self.vwap_near_pct:
-                s.bias = DirectionBias.SHORT_ONLY
-            else:
-                s.bias = DirectionBias.BOTH
-
-        return s
-
-    def update_on_1h_close(self, symbol: str, vwap_dist_pct_1h: float) -> SymbolSession:
-        s = self.session(symbol)
-        s.vwap_dist_1h = float(vwap_dist_pct_1h) if vwap_dist_pct_1h is not None else float("nan")
-
-        if math.isnan(s.vwap_dist_1h):
-            s.sizing_mult = 1.0
-            return s
-
-        near_vwap = abs(s.vwap_dist_1h) <= self.vwap_near_pct
-        if near_vwap:
-            s.sizing_mult = 0.85
-            s.last_reason = f"1h sizing down: near VWAP ({s.vwap_dist_1h:.2f}%)"
-            return s
-
-        if s.bias == DirectionBias.LONG_ONLY and s.vwap_dist_1h > 0:
-            s.sizing_mult = 1.10
-            s.last_reason = f"1h sizing up: above VWAP ({s.vwap_dist_1h:.2f}%)"
-        elif s.bias == DirectionBias.SHORT_ONLY and s.vwap_dist_1h < 0:
-            s.sizing_mult = 1.10
-            s.last_reason = f"1h sizing up: below VWAP ({s.vwap_dist_1h:.2f}%)"
-        else:
-            s.sizing_mult = 1.0
-            s.last_reason = f"1h sizing neutral: VWAP ({s.vwap_dist_1h:.2f}%) vs bias {s.bias.value}"
-
-        return s
-
-
-# -----------------------------
-# Regime labeling (1h CLOSED only)
-# -----------------------------
-def label_regime_from_1h(adx_14: float, atrp_14: float) -> Dict[str, str]:
-    trend_label = "TREND" if (not math.isnan(adx_14) and adx_14 >= 22.0) else "RANGE"
-    if math.isnan(atrp_14):
-        vol_label = "UNKNOWN_VOL"
-    else:
-        vol_label = "HIGH_VOL" if atrp_14 >= 0.60 else "LOW_VOL"
-    return {"trend_label": trend_label, "vol_label": vol_label, "regime": f"{trend_label}_{vol_label}"}
-
-
-# -----------------------------
-# Disk writer (CSV append)
-# -----------------------------
-class CSVAppender:
-    def __init__(self, out_dir: str):
-        self.out_dir = out_dir
-        ensure_dir(out_dir)
-
-    def _path(self, kind: str, tf: str, symbol: str, ts: datetime) -> str:
-        d = today_yyyymmdd(ts)
-        base = os.path.join(self.out_dir, kind, tf)
-        ensure_dir(base)
-        return os.path.join(base, f"{symbol}_{d}.csv")
-
-    def append_row(self, kind: str, tf: str, symbol: str, ts: datetime, row: Dict[str, object]) -> None:
-        path = self._path(kind, tf, symbol, ts)
-        write_header = not os.path.exists(path)
-        with open(path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
-            if write_header:
-                writer.writeheader()
-            writer.writerow(row)
-
-    def append_market_regime(self, ts: datetime, row: Dict[str, object]) -> None:
-        base = os.path.join(self.out_dir, "regimes")
-        ensure_dir(base)
-        path = os.path.join(base, "market_regime.csv")
-        write_header = not os.path.exists(path)
-        with open(path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
-            if write_header:
-                writer.writeheader()
-            writer.writerow(row)
-
-    def append_session_state(self, ts: datetime, row: Dict[str, object]) -> None:
-        base = os.path.join(self.out_dir, "session_state")
-        ensure_dir(base)
-        path = os.path.join(base, f"session_state_{today_yyyymmdd(ts)}.csv")
-        write_header = not os.path.exists(path)
-        with open(path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
-            if write_header:
-                writer.writeheader()
-            writer.writerow(row)
-
-    def append_quote_log(self, ts: datetime, row: Dict[str, object]) -> None:
-        base = os.path.join(self.out_dir, "quotes")
-        ensure_dir(base)
-        path = os.path.join(base, f"quotes_{today_yyyymmdd(ts)}.csv")
-        write_header = not os.path.exists(path)
-        with open(path, "a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
-            if write_header:
-                writer.writeheader()
-            writer.writerow(row)
-
-
-# -----------------------------
-# Quote Cache (latest snapshot per symbol) + initial fetch
-# -----------------------------
-class QuoteCache:
-    """
-    Maintains latest quote snapshot per symbol.
-
-    Integrates the docs logic:
-    - Historical latest quote retrieval via StockHistoricalDataClient + StockLatestQuoteRequest
-      returns dict keyed by symbol.
-    - Live quote streaming via StockDataStream.subscribe_quotes(handler, *symbols)
-    """
-
-    def __init__(self, historical_client: StockHistoricalDataClient, writer: CSVAppender, log_quotes: bool):
-        self.client = historical_client
-        self.writer = writer
-        self.log_quotes = log_quotes
-        self.latest: Dict[str, QuoteSnap] = {}
-
-    def get(self, symbol: str) -> QuoteSnap:
-        return self.latest.get(symbol, QuoteSnap())
-
-    def seed_latest_quotes(self, symbols: List[str]) -> None:
-        """
-        One-time initial snapshot.
-        IMPORTANT: response is dict keyed by symbol even if you request one symbol.
-        """
-        if not symbols:
-            return
-        req = StockLatestQuoteRequest(symbol_or_symbols=symbols)
-        data = self.client.get_stock_latest_quote(req)  # dict keyed by symbol
-        for sym in symbols:
-            q = data.get(sym)
-            if q is None:
-                continue
-            self.latest[sym] = QuoteSnap(
-                time=getattr(q, "timestamp", None),
-                bid_price=safe_float(getattr(q, "bid_price", float("nan"))),
-                bid_size=safe_float(getattr(q, "bid_size", float("nan"))),
-                ask_price=safe_float(getattr(q, "ask_price", float("nan"))),
-                ask_size=safe_float(getattr(q, "ask_size", float("nan"))),
-            )
-
-    def update_from_stream(self, q: Any) -> None:
-        """
-        Called by live quote handler. Alpaca's quote model typically has:
-        symbol, timestamp, bid_price, bid_size, ask_price, ask_size
-        """
-        sym = getattr(q, "symbol", None)
-        if not sym:
-            return
-        snap = QuoteSnap(
-            time=getattr(q, "timestamp", None),
-            bid_price=safe_float(getattr(q, "bid_price", float("nan"))),
-            bid_size=safe_float(getattr(q, "bid_size", float("nan"))),
-            ask_price=safe_float(getattr(q, "ask_price", float("nan"))),
-            ask_size=safe_float(getattr(q, "ask_size", float("nan"))),
-        )
-        self.latest[sym] = snap
-
-        if self.log_quotes:
-            ts = snap.time or datetime.now(tz=NY)
-            row = {
-                "time": ts.astimezone(NY).isoformat() if hasattr(ts, "astimezone") else str(ts),
-                "symbol": sym,
-                "bid_price": snap.bid_price,
-                "bid_size": snap.bid_size,
-                "ask_price": snap.ask_price,
-                "ask_size": snap.ask_size,
-                "mid": snap.mid,
-                "spread": snap.spread,
-                "spread_pct_mid": snap.spread_pct_mid,
-            }
-            self.writer.append_quote_log(datetime.now(tz=NY), row)
-
-
-# -----------------------------
-# Market Monitor
-# -----------------------------
-class MarketMonitor:
-    def __init__(self, symbols: List[str], out_dir: str, feed: DataFeed, regime_symbol: str):
-        self.symbols = symbols
-        self.writer = CSVAppender(out_dir)
-
-        # Auth
-        api_key = os.environ.get("APCA_API_KEY_ID") or os.environ.get("APCA_API_KEY_ID")
-        api_secret = os.environ.get("APCA_API_SECRET_KEY") or os.environ.get("ALPACA_API_SECRET")
-        if not api_key or not api_secret:
-            raise RuntimeError("Missing API keys. Set APCA_API_KEY_ID and APCA_API_SECRET_KEY.")
-        self.api_key = api_key
-        self.api_secret = api_secret
-
-        # Eligibility engine thresholds
-        vwap_extreme = env_float("VWAP_EXTREME_DIST_PCT", 1.25)
-        vwap_near = env_float("VWAP_NEAR_PCT", 0.10)
-        self.engine = EligibilityEngine(vwap_extreme_dist_pct=vwap_extreme, vwap_near_pct=vwap_near)
-
-        # If user explicitly provided REGIME_SYMBOL and it exists, honor it.
-        # Otherwise, auto-select later once a symbol becomes CONFIRMED.
-        self.regime_symbol_override = (regime_symbol or "").strip().upper()
-        self.regime_symbol: Optional[str] = self.regime_symbol_override if self.regime_symbol_override in symbols else None
-
-
-        # Aggregators
-        self.aggs: Dict[str, Dict[str, BarAggregator]] = {
-            "5m": {s: BarAggregator(5) for s in symbols},
-            "15m": {s: BarAggregator(15) for s in symbols},
-            "30m": {s: BarAggregator(30) for s in symbols},
-            "1h": {s: BarAggregator(60) for s in symbols},
+        if (watchStatus) {
+          watchStatus.textContent = `symbols=${total} | showing=${gridItems.length} | updated ${new Date().toLocaleTimeString()}`;
         }
 
-        # Rolling series for features (closed bars only)
-        self.series: Dict[str, Dict[str, RollingSeries]] = {
-            "5m": {s: RollingSeries(maxlen=1600) for s in symbols},
-            "15m": {s: RollingSeries(maxlen=1600) for s in symbols},
-            "30m": {s: RollingSeries(maxlen=1600) for s in symbols},
-            "1h": {s: RollingSeries(maxlen=4000) for s in symbols},
-        }
+        setStatus(true, "Loaded", `OK • ${gridItems.length} tiles`);
+      } catch (err) {
+        console.error(err);
+        if (watchStatus) watchStatus.textContent = `Error loading watchlist: ${err?.message || err}`;
+        setStatus(false, "Error", err?.message || String(err));
+      }
+    }
 
-        self.closed_5m_count: Dict[str, int] = {s: 0 for s in symbols}
+    // ===== Navbar clock + feed filter =====
+    const navClock = document.getElementById("nav-clock");
+    const navSearch = document.getElementById("nav-search");
 
-        # Quote cache: seed via historical client + update via live quote stream
-        hist_client = StockHistoricalDataClient(self.api_key, self.api_secret)
-        self.quote_cache = QuoteCache(
-            historical_client=hist_client,
-            writer=self.writer,
-            log_quotes=env_bool("LOG_QUOTES", False),
-        )
-        self.quote_cache.seed_latest_quotes(self.symbols)
+    function tickClock(){
+      const t = new Date().toLocaleTimeString();
+      if (navClock) navClock.textContent = t;
+    }
+    setInterval(tickClock, 1000);
+    tickClock();
 
-        self.feed = feed
-    
-    def _maybe_select_regime_symbol(self) -> None:
-        # Honor explicit override if user set it and it exists
-        if getattr(self, "regime_symbol_override", "") and self.regime_symbol_override in self.symbols:
-            self.regime_symbol = self.regime_symbol_override
-            return
+    if (navSearch){
+      navSearch.addEventListener("input", () => {
+        const feed = document.getElementById("feed");
+        if (!feed) return;
 
-        best_sym = None
-        best_score = -1.0
+        const q = (navSearch.value || "").trim().toLowerCase();
+        feed.querySelectorAll(".evt").forEach(evt => {
+          const txt = (evt.textContent || "").toLowerCase();
+          evt.style.display = (!q || txt.includes(q)) ? "" : "none";
+        });
+      });
+    }
 
-        for sym in self.symbols:
-            sess = self.engine.session(sym)
-            if sess.state == CandidateState.CONFIRMED:
-                if sess.score > best_score:
-                    best_score = sess.score
-                    best_sym = sym
+    // ===== Events =====
+    document.getElementById("refreshBtn")?.addEventListener("click", refreshWatchlist);
+    document.getElementById("searchSym")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") refreshWatchlist();
+    });
 
-        if best_sym is None:
-            return
+    // initial load
+    refreshWatchlist();
+  </script>
 
-        if self.regime_symbol != best_sym:
-            self.regime_symbol = best_sym
-            print(f"[REGIME_SYMBOL SELECTED] {best_sym} (highest CONFIRMED score={best_score:.3f})")
+  <!-- ✅ User menu + avatar hydration (applied) -->
+  <script>
+    function hydrateUserAvatar() {
+      const avatar = document.getElementById("userAvatar");
+      const loginLink = document.getElementById("loginLink");
+      const logoutLink = document.getElementById("logoutLink");
 
+      const raw =
+        localStorage.getItem("qq_user") ||
+        sessionStorage.getItem("qq_user");
 
+      if (!raw) {
+        if (avatar) avatar.textContent = "??";
+        if (loginLink) loginLink.style.display = "block";
+        if (logoutLink) logoutLink.style.display = "none";
+        return;
+      }
 
-    def _write_bar(self, tf: str, symbol: str, bar: OHLCV) -> None:
-        row = {
-            "time": bar.time.astimezone(NY).isoformat(),
-            "open": bar.open,
-            "high": bar.high,
-            "low": bar.low,
-            "close": bar.close,
-            "volume": bar.volume,
-        }
-        self.writer.append_row(kind="bars", tf=tf, symbol=symbol, ts=bar.time, row=row)
+      try {
+        const user = JSON.parse(raw);
+        const initials = String(user?.initials || "??").toUpperCase();
 
-    def _write_features(self, tf: str, symbol: str, ts: datetime, feats: Dict[str, float]) -> None:
-        row = {"time": ts.astimezone(NY).isoformat(), **feats}
-        self.writer.append_row(kind="features", tf=tf, symbol=symbol, ts=ts, row=row)
+        if (avatar) avatar.textContent = initials.length ? initials.slice(0, 2) : "??";
+        if (loginLink) loginLink.style.display = "none";
+        if (logoutLink) logoutLink.style.display = "block";
+      } catch (e) {
+        console.warn("Invalid qq_user in storage", e);
+        if (avatar) avatar.textContent = "??";
+        if (loginLink) loginLink.style.display = "block";
+        if (logoutLink) logoutLink.style.display = "none";
+      }
+    }
 
-    def _write_market_regime(self, ts: datetime, symbol: str, feats_1h: Dict[str, float]) -> None:
-        labels = label_regime_from_1h(
-            adx_14=float(feats_1h.get("adx_14", float("nan"))),
-            atrp_14=float(feats_1h.get("atrp_14", float("nan"))),
-        )
-        row = {
-            "time": ts.astimezone(NY).isoformat(),
-            "symbol": symbol,
-            "adx_14": float(feats_1h.get("adx_14", float("nan"))),
-            "atrp_14": float(feats_1h.get("atrp_14", float("nan"))),
-            "trend_label": labels["trend_label"],
-            "vol_label": labels["vol_label"],
-            "regime": labels["regime"],
-        }
-        self.writer.append_market_regime(ts, row)
+    // Dropdown behavior (your existing logic, made safe)
+    (function initUserDropdown(){
+      const userBtn = document.getElementById("userBtn");
+      const userDropdown = document.getElementById("userDropdown");
+      if (!userBtn || !userDropdown) return;
 
-    def _write_session_state(self, ts: datetime, symbol: str, event: str) -> None:
-        s = self.engine.session(symbol)
-        q = self.quote_cache.get(symbol)
-        qt = q.time.astimezone(NY).isoformat() if (q.time and hasattr(q.time, "astimezone")) else (str(q.time) if q.time else "")
-        
-        row = {
-            "time": ts.astimezone(NY).isoformat(),
-            "symbol": symbol,
-            "event": event,
-            "score": round(float(s.score), 6),
+      userBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = userDropdown.style.display === "block";
+        userDropdown.style.display = open ? "none" : "block";
+        userBtn.setAttribute("aria-expanded", String(!open));
+      });
 
-            "state": s.state.value,
-            "bias": s.bias.value,
-            "allow_trend": int(s.allow_trend),
-            "allow_mean_reversion": int(s.allow_mean_reversion),
-            "flip_count": int(s.flip_count),
+      document.addEventListener("click", () => {
+        userDropdown.style.display = "none";
+        userBtn.setAttribute("aria-expanded", "false");
+      });
+    })();
 
-            "dir_5m_1": s.dir_5m[0] if len(s.dir_5m) > 0 else 0,
-            "dir_5m_2": s.dir_5m[1] if len(s.dir_5m) > 1 else 0,
-            "dir_5m_3": s.dir_5m[2] if len(s.dir_5m) > 2 else 0,
-            "dir_5m_4": s.dir_5m[3] if len(s.dir_5m) > 3 else 0,
-            "dir_5m_5": s.dir_5m[4] if len(s.dir_5m) > 4 else 0,
-            "dir_5m_6": s.dir_5m[5] if len(s.dir_5m) > 5 else 0,
+    // Logout clears storage + redirects
+    document.getElementById("logoutLink")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem("qq_token");
+      localStorage.removeItem("qq_user");
+      sessionStorage.removeItem("qq_token");
+      sessionStorage.removeItem("qq_user");
+      window.location.href = "/login.html";
+    });
 
-            "dir_15m": int(s.dir_15m),
-            "dir_30m": int(s.dir_30m),
+    // run on load
+    hydrateUserAvatar();
+  </script>
+<script>
+(function () {
+  const token =
+    localStorage.getItem("auth_token") ||
+    sessionStorage.getItem("auth_token");
 
-            "vwap_dist_5m": s.vwap_dist_5m,
-            "vwap_dist_15m": s.vwap_dist_15m,
-            "vwap_dist_30m": s.vwap_dist_30m,
-            "vwap_dist_1h": s.vwap_dist_1h,
+  const userRaw =
+    localStorage.getItem("auth_user") ||
+    sessionStorage.getItem("auth_user");
 
-            "sizing_mult": float(s.sizing_mult),
-            "risk_mult": float(self.engine.risk_multiplier(symbol)),
-            "reason": s.last_reason,
+  const loginLink  = document.getElementById("loginLink");
+  const logoutLink = document.getElementById("logoutLink");
+  const avatar     = document.getElementById("userAvatar");
 
-            # Quote snapshot (context only)
-            "quote_time": qt,
-            "bid_price": q.bid_price,
-            "bid_size": q.bid_size,
-            "ask_price": q.ask_price,
-            "ask_size": q.ask_size,
-            "mid": q.mid,
-            "spread": q.spread,
-            "spread_pct_mid": q.spread_pct_mid,
-        }
-        self.writer.append_session_state(ts, row)
+  if (token && userRaw) {
+    // ✅ Logged in
+    try {
+      const user = JSON.parse(userRaw);
 
-    # --- Live handlers ---
-    async def on_quote(self, q) -> None:
-        # Real-time quotes (context-only)
-        self.quote_cache.update_from_stream(q)
+      if (avatar && user.initials) {
+        avatar.textContent = user.initials.toUpperCase();
+      }
 
-    async def on_1m_bar(self, bar) -> None:
-        ts = bar.timestamp.astimezone(NY)
-        bar_1m = OHLCV(
-            time=ts.replace(second=0, microsecond=0),
-            open=safe_float(bar.open),
-            high=safe_float(bar.high),
-            low=safe_float(bar.low),
-            close=safe_float(bar.close),
-            volume=safe_float(bar.volume),
-        )
+      if (loginLink)  loginLink.style.display = "none";
+      if (logoutLink) logoutLink.style.display = "block";
+    } catch (e) {
+      console.warn("Invalid auth_user, clearing");
+      clearAuth();
+    }
+  } else {
+    // ❌ Logged out
+    if (avatar) avatar.textContent = "--";
+    if (loginLink)  loginLink.style.display = "block";
+    if (logoutLink) logoutLink.style.display = "none";
+  }
 
-        sym = bar.symbol
-        if sym not in self.symbols:
-            return
+  // Logout handler
+  logoutLink?.addEventListener("click", (e) => {
+    e.preventDefault();
+    clearAuth();
+    window.location.href = "/login.html";
+  });
 
-        # Process higher timeframes FIRST so prints come out in this order:
-        # 1H, 30M, 15M, 5M
-        for tf in ("1h", "30m", "15m", "5m"):
-            finished = self.aggs[tf][sym].update(bar_1m)
-            if not finished:
-                continue  # ❌ partial bars ignored
+  function clearAuth() {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user");
+    sessionStorage.removeItem("auth_token");
+    sessionStorage.removeItem("auth_user");
+  }
+})();
+</script>
 
-            # ----------------------------
-            # Persist closed bar + features
-            # ----------------------------
-            self._write_bar(tf, sym, finished)
-
-            self.series[tf][sym].add(finished)
-            feats = self.series[tf][sym].compute_features()
-            if feats:
-                self._write_features(tf, sym, finished.time, feats)
-
-            vwap_dist = float(feats.get("vwap_dist_pct", float("nan"))) if feats else float("nan")
-
-            # ----------------------------
-            # Eligibility + regime logic
-            # ----------------------------
-            if tf == "5m":
-                self.closed_5m_count[sym] += 1
-                idx = self.closed_5m_count[sym]
-                self.engine.update_on_5m_close(
-                    sym,
-                    finished,
-                    vwap_dist_pct_5m=vwap_dist,
-                    bar_index_5m=idx,
-                )
-                self._write_session_state(finished.time, sym, event="5m_close")
-
-            elif tf == "15m":
-                self.engine.update_on_15m_close(sym, finished, vwap_dist_pct_15m=vwap_dist)
-                self._write_session_state(finished.time, sym, event="15m_close")
-
-            elif tf == "30m":
-                self.engine.update_on_30m_close(sym, finished, vwap_dist_pct_30m=vwap_dist)
-                self._write_session_state(finished.time, sym, event="30m_close")
-
-                # 🔑 choose regime symbol by highest CONFIRMED score
-                self._maybe_select_regime_symbol()
-
-            elif tf == "1h":
-                self.engine.update_on_1h_close(sym, vwap_dist_pct_1h=vwap_dist)
-                self._write_session_state(finished.time, sym, event="1h_close")
-
-                if self.regime_symbol is not None and sym == self.regime_symbol and feats:
-                    self._write_market_regime(finished.time, sym, feats)
-
-            # ----------------------------
-            # ✅ EXACT PRINT FORMAT (AS REQUESTED)
-            # ----------------------------
-            tf_label = {
-                "1h": "1H",
-                "30m": "30M",
-                "15m": "15M",
-                "5m": "5M",
-            }[tf]
-
-            print(
-                f"[{tf_label} CLOSED] "
-                f"{sym} "
-                f"{finished.time.astimezone(NY).strftime('%H:%M')} "
-                f"close={finished.close:.2f}"
-            )
-
-    def run(self) -> None:
-        stream = StockDataStream(self.api_key, self.api_secret, feed=self.feed)
-
-        # ✅ Bars for signals/features (closed-only after resample)
-        stream.subscribe_bars(self.on_1m_bar, *self.symbols)
-
-        # ✅ Quotes for context (live); integrated per Alpaca docs
-        stream.subscribe_quotes(self.on_quote, *self.symbols)
-
-        print(f"Streaming 1m bars + live quotes for {len(self.symbols)} symbols on feed={self.feed} ...")
-        print("CLOSED-BAR ONLY: eligibility + features updated ONLY on closed 5m/15m/30m/1h bars.")
-        print(f"VWAP thresholds: extreme={self.engine.vwap_extreme_dist_pct:.2f}%  near={self.engine.vwap_near_pct:.2f}%")
-        if self.regime_symbol:
-            print(f"Regime benchmark symbol (preset): {self.regime_symbol} (writes market_regime.csv on CLOSED 1h bars)")
-        else:
-            print("Regime benchmark symbol: AUTO (will select first symbol that becomes CONFIRMED at 30m)")
-
-        if env_bool("LOG_QUOTES", False):
-            print("Quote logging enabled: OUT_DIR/quotes/quotes_YYYYMMDD.csv")
-
-        stream.run()
-
-
-# -----------------------------
-# Entrypoint
-# -----------------------------
-def parse_symbols() -> List[str]:
-    raw = os.environ.get("SYMBOLS", "XLE,XLV,DIA,QQQ,TQQQ,QTUM,BUZZ,RGTI,HEPS,OUST,IONQ,CHAT,QBTS,LUNR,SOUN,UBER,MIND,WAVE,OPEN,KXIN,NGD,NKTR,IAG,ASRT,KITT,LUNR,HFUS,UNG,NVD,GORO").strip("\n")
-    syms = [s.strip().upper() for s in raw.split(",") if s.strip()]
-    if not syms:
-        raise ValueError("No symbols provided.")
-    return syms
-
-
-def parse_feed() -> DataFeed:
-    raw = os.environ.get("ALPACA_DATA_FEED", "IEX").strip().upper()
-    return DataFeed.SIP if raw == "SIP" else DataFeed.IEX
-
-
-if __name__ == "__main__":
-    symbols = parse_symbols()
-    out_dir = os.environ.get("OUT_DIR", "./data_store")
-    feed = parse_feed()
-    regime_symbol = os.environ.get("REGIME_SYMBOL", "SYMBOLS").strip().upper()
-
-    monitor = MarketMonitor(symbols=symbols, out_dir=out_dir, feed=feed, regime_symbol=regime_symbol)
-    monitor.run()
+</body>
+</html>
