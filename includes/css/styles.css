@@ -1,0 +1,39 @@
+input, select{
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+input::placeholder{
+  color: #94a3b8;
+}
+
+input:focus, select:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+button{
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-weight: 600;
+}
+
+button.primary{
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+button.primary:hover{
+  filter: brightness(0.95);
+}
+h1, h2, h3{
+  letter-spacing: -0.015em;
+}
+.watchTile:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(15,23,42,.12);
+  transition: .15s ease;
+}

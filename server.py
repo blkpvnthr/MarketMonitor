@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from starlette.requests import Request
 
 from pydantic import BaseModel, EmailStr, Field
@@ -23,6 +23,7 @@ JWT_SECRET = os.getenv("JWT_SECRET", "CHANGE_ME_TO_LONG_RANDOM_SECRET")
 JWT_ALG = "HS256"
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
 
+# Keep bcrypt for now since your project already used it
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # ========= App =========
@@ -36,6 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve your project folder at /static (HTML/CSS/JS/images)
+# Example: /static/signup.html
+app.mount("/static", StaticFiles(directory=".", html=True), name="static")
+
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[MONGO_DB]
 
@@ -45,22 +50,19 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": f"{type(exc).__name__}: {exc}"})
 
 
-# ========= HTML routes (login-first) =========
-@app.get("/", include_in_schema=False)
+# ========= HTML routes =========
+@app.get("/")
 async def home():
-    return FileResponse("login.html")
+    # choose your landing page
+    return FileResponse("index.html")
 
-@app.get("/login", include_in_schema=False)
+@app.get("/login")
 async def login_page():
     return FileResponse("login.html")
 
-@app.get("/signup", include_in_schema=False)
+@app.get("/signup")
 async def signup_page():
     return FileResponse("signup.html")
-
-@app.get("/dashboard", include_in_schema=False)
-async def dashboard_page():
-    return FileResponse("index.html")
 
 
 # ========= Helpers =========
@@ -128,7 +130,6 @@ async def signup(body: SignupIn):
     user_id = str(res.inserted_id)
     initials = (doc["first_name"][:1] + doc["last_name"][:1]).upper()
     token = make_token(user_id, email)
-
     return {"token": token, "user": {"id": user_id, "email": email, "initials": initials}}
 
 @app.post("/api/login")
@@ -148,7 +149,4 @@ async def login(body: LoginIn):
 
     return {"token": token, "user": {"id": user_id, "email": email, "initials": initials}}
 
-
-# ========= Static files (MUST be last) =========
-# Serves /index.html, /signup.html, /includes/..., /data_store/..., etc.
 app.mount("/", StaticFiles(directory=".", html=True), name="site")

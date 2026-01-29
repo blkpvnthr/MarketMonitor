@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AlgoBot • Script IDE</title>
-  <link rel="icon" href="../static/favicon.ico" />
-  <style>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlgoBot • Script IDE</title>
+    <link rel="icon" href="../static/favicon.ico" />
+    <style>
     :root{
       --bg:#fff; --text:#0b0f17; --muted:rgba(11,15,23,.62);
       --line:rgba(0,0,0,.12); --panel:rgba(0,0,0,.03);
@@ -47,7 +47,7 @@
     pre{margin:0;padding:10px;border:1px solid var(--line);background:rgba(0,0,0,.02);border-radius:12px;height:240px;overflow:auto;font-family:var(--mono);font-size:12px;white-space:pre-wrap}
   </style>
 
-  <style>
+    <style>
   :root{
     --bg: #ffffff;
     --panel: rgba(0,0,0,.03);
@@ -651,55 +651,61 @@ header{ margin-top: 0 !important; }
   }
 
 </style>
-</head>
+  </head>
 
-<body>
-     <!-- Navbar -->
-<nav class="navbar" role="navigation" aria-label="Primary">
-  <div class="navwrap">
-    <div class="navLeft">
-      <a href="/" style="text-decoration:none;color:inherit;">
-        <div class="navTitle">
-          <strong>Quantum<span style="font-weight: 100 !important;">Quant</span></strong>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar" role="navigation" aria-label="Primary">
+      <div class="navwrap">
+        <div class="navLeft">
+          <a href="/" style="text-decoration:none;color:inherit;">
+            <div class="navTitle">
+              <strong>Quantum<span
+                  style="font-weight: 100 !important;">Quant</span></strong>
+            </div>
+          </a>
         </div>
-      </a>
-    </div>
 
-    <div class="navLinks" aria-label="Quick links">
-      <a href="/index.html"><span>Dashboard</span></a>
-      <a href="/brokers.html">Brokers</a>
-      <a href="/script.html" style="text-decoration: underline;"></a>Strategy</a>
-      <a href="/backtests.html">Backtests</a>
-    </div>
+        <div class="navLinks" aria-label="Quick links">
+          <a href="/index.html"><span>Dashboard</span></a>
+          <a href="/brokers.html">Brokers</a>
+          <a href="/ide.html">IDE Documentation</a>
+          <a href="/script.html"
+            style="text-decoration: underline;"></a>Strategy</a>
+        <a href="/backtests.html">Backtests</a>
+      </div>
 
-    <div class="navRight">
-      <input class="navSearch" id="nav-search" type="text" placeholder="Filter feed (e.g. quote, trade)" />
-      <span class="pill" id="nav-clock">--:--</span>
+      <div class="navRight">
+        <input class="navSearch" id="nav-search" type="text"
+          placeholder="Filter feed (e.g. quote, trade)" />
+        <span class="pill" id="nav-clock">--:--</span>
 
-      <!-- User Profile -->
-      <div class="userMenu" id="userMenu">
-        <button class="userBtn" id="userBtn" aria-haspopup="true" aria-expanded="false" type="button">
-          <span class="avatar" id="userAvatar">AQ</span>
-          <span class="caret">▾</span>
-        </button>
+        <!-- User Profile -->
+        <div class="userMenu" id="userMenu">
+          <button class="userBtn" id="userBtn" aria-haspopup="true"
+            aria-expanded="false" type="button">
+            <span class="avatar" id="userAvatar">AQ</span>
+            <span class="caret">▾</span>
+          </button>
 
-        <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
-          <a href="/account.html">Account</a>
-          <a href="/settings.html">Settings</a>
-          <a href="/trades.html">Trade Logs</a>
-          <a href="/security.html">Security</a>
-          <a href="/ideas.html">Ideas</a>
-          <div class="divider"></div>
-          <a href="/help.html">Help</a>
-          <div class="divider"></div>
-          <a href="/login.html" id="loginLink">Log in</a>
-          <a href="/logout" id="logoutLink" class="danger" style="display:none;">Log out</a>
+          <div class="userDropdown" id="userDropdown" role="menu"
+            aria-label="User menu">
+            <a href="/account.html">Account</a>
+            <a href="/settings.html">Settings</a>
+            <a href="/trades.html">Trade Logs</a>
+            <a href="/security.html">Security</a>
+            <a href="/ideas.html">Ideas</a>
+            <div class="divider"></div>
+            <a href="/help.html">Help</a>
+            <div class="divider"></div>
+            <a href="/login.html" id="loginLink">Log in</a>
+            <a href="/logout" id="logoutLink" class="danger"
+              style="display:none;">Log out</a>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</nav>
-
+  </nav>
 
   <div class="wrap">
     <header>
@@ -713,7 +719,8 @@ header{ margin-top: 0 !important; }
         <span class="dot" id="runDot"></span>
         <div style="display:flex;flex-direction:column;line-height:1.1">
           <strong id="runState">Idle</strong>
-          <span style="color:var(--muted);font-size:12px" id="runDetail">No active run</span>
+          <span style="color:var(--muted);font-size:12px" id="runDetail">No
+            active run</span>
         </div>
         <button class="btn" id="btnSave">Save</button>
         <button class="btn primary" id="btnRunPaper">Run Paper</button>
@@ -722,118 +729,120 @@ header{ margin-top: 0 !important; }
       </div>
     </header>
 
-   <div class="grid">
-<!-- Left Rail -->
-     <!-- Backtest -->
-<section class="card" id="backtestCard">
-  <div class="hd"><strong>📈 Backtest</strong><span class="pill">API</span></div>
-  <div class="bd">
-    <div class="row">
-      <div>
-        <label>Symbol</label>
-        <input id="btSymbol" value="AAPL" />
-      </div>
-      <div>
-        <label>Timeframe</label>
-        <select id="btTf">
-          <option value="1d" selected>1d</option>
-          <option value="1h">1h</option>
-          <option value="30m">30m</option>
-          <option value="15m">15m</option>
-          <option value="5m">5m</option>
-        </select>
-      </div>
+    <div class="grid">
+      <!-- Left Rail -->
+      <!-- Backtest -->
+      <section class="card" id="backtestCard">
+        <div class="hd"><strong>📈 Backtest</strong><span
+            class="pill">API</span></div>
+        <div class="bd">
+          <div class="row">
+            <div>
+              <label>Symbol</label>
+              <input id="btSymbol" value="AAPL" />
+            </div>
+            <div>
+              <label>Timeframe</label>
+              <select id="btTf">
+                <option value="1d" selected>1d</option>
+                <option value="1h">1h</option>
+                <option value="30m">30m</option>
+                <option value="15m">15m</option>
+                <option value="5m">5m</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label>Start</label>
+              <input id="btStart" type="date" value="2023-01-01" />
+            </div>
+            <div>
+              <label>End</label>
+              <input id="btEnd" type="date" value="2024-12-31" />
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>Strategy</label>
+            <div class="pill" style="display:inline-flex;">From Editor</div>
+            <div class="hint" style="margin-top:6px;">
+              Backtest uses whatever is currently written in the editor.
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label>SMA Params (JSON)</label>
+              <input id="btParams" value='{"fast":20,"slow":50}' />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label>Initial cash</label>
+              <input id="btCash" type="number" value="10000" />
+            </div>
+            <div>
+              <label>Commission</label>
+              <input id="btComm" type="number" step="0.01" value="1" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label>Slippage (bps)</label>
+              <input id="btSlip" type="number" step="1" value="5" />
+            </div>
+            <div>
+              <label>Position sizing</label>
+              <select id="btPosSize">
+                <option value="all_in" selected>all_in</option>
+                <option value="fixed_qty">fixed_qty</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <div>
+              <label>Fixed qty (if fixed_qty)</label>
+              <input id="btQty" type="number" step="0.01" value="1" />
+            </div>
+          </div>
+
+          <div class="btnbar">
+            <button class="primary" id="btnBacktest">Run Backtest</button>
+            <button id="btnClearCharts">Clear</button>
+          </div>
+
+          <div class="hint" id="btHint">
+            Renders 2 plots: <code>Price</code> (with buy/sell markers) and
+            <code>Equity</code>.
+          </div>
+
+          <pre id="btMetrics" style="margin-top:12px;height:160px;"></pre>
+        </div>
+      </section>
+      <!-- Center: Editor -->
+      <section class="card">
+        <div class="hd"><strong>🧾 Editor</strong><span
+            class="pill">Python</span></div>
+        <div class="bd">
+          <div class="editorShell" id="editorHost">
+            <textarea class="editorFallback" id="editorFallback"
+              spellcheck="false"></textarea>
+          </div>
+          <div style="margin-top:10px;color:var(--muted);font-size:12px;">
+            Your code runs on the server/runner (API keys never touch the
+            browser).
+          </div>
+        </div>
+      </section>
+
     </div>
 
-    <div class="row" style="margin-top:10px;">
-      <div>
-        <label>Start</label>
-        <input id="btStart" type="date" value="2023-01-01" />
-      </div>
-      <div>
-        <label>End</label>
-        <input id="btEnd" type="date" value="2024-12-31" />
-      </div>
-    </div>
-
-    <div style="margin-top:10px;">
-  <label>Strategy</label>
-  <div class="pill" style="display:inline-flex;">From Editor</div>
-  <div class="hint" style="margin-top:6px;">
-    Backtest uses whatever is currently written in the editor.
-  </div>
-</div>
-
-
-    <div class="row" style="margin-top:10px;">
-      <div>
-        <label>SMA Params (JSON)</label>
-        <input id="btParams" value='{"fast":20,"slow":50}' />
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px;">
-      <div>
-        <label>Initial cash</label>
-        <input id="btCash" type="number" value="10000" />
-      </div>
-      <div>
-        <label>Commission</label>
-        <input id="btComm" type="number" step="0.01" value="1" />
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px;">
-      <div>
-        <label>Slippage (bps)</label>
-        <input id="btSlip" type="number" step="1" value="5" />
-      </div>
-      <div>
-        <label>Position sizing</label>
-        <select id="btPosSize">
-          <option value="all_in" selected>all_in</option>
-          <option value="fixed_qty">fixed_qty</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:10px;">
-      <div>
-        <label>Fixed qty (if fixed_qty)</label>
-        <input id="btQty" type="number" step="0.01" value="1" />
-      </div>
-    </div>
-
-    <div class="btnbar">
-      <button class="primary" id="btnBacktest">Run Backtest</button>
-      <button id="btnClearCharts">Clear</button>
-    </div>
-
-    <div class="hint" id="btHint">
-      Renders 2 plots: <code>Price</code> (with buy/sell markers) and <code>Equity</code>.
-    </div>
-
-    <pre id="btMetrics" style="margin-top:12px;height:160px;"></pre>
-  </div>
-</section>
-  <!-- Center: Editor -->
-  <section class="card">
-    <div class="hd"><strong>🧾 Editor</strong><span class="pill">Python</span></div>
-    <div class="bd">
-      <div class="editorShell" id="editorHost">
-        <textarea class="editorFallback" id="editorFallback" spellcheck="false"></textarea>
-      </div>
-      <div style="margin-top:10px;color:var(--muted);font-size:12px;">
-        Your code runs on the server/runner (API keys never touch the browser).
-      </div>
-    </div>
-  </section>
-
-    
-
-</div>
-
-<script>
+    <script>
   function getEditorCode(){
   // If you're using Monaco, keep a handle like: window.editor = monaco.editor.create(...)
   if (window.editor && typeof window.editor.getValue === "function"){
@@ -892,7 +901,7 @@ document.getElementById("btnBacktest")?.addEventListener("click", async () => {
 });
 
 </script>
-  <script>
+    <script>
     // --- Monaco (optional) ---
     let editor = null;
     let currentScriptId = null;
@@ -1070,7 +1079,7 @@ document.getElementById("btnBacktest")?.addEventListener("click", async () => {
       setRunStatus("idle", "Idle", "Ready");
     });
   </script>
-  <script>
+    <script>
   // Folder toggle (click folder rows)
   document.addEventListener("click", (e) => {
     const row = e.target.closest(".treeRow.folder");
@@ -1134,7 +1143,7 @@ document.getElementById("btnBacktest")?.addEventListener("click", async () => {
     renderScriptsTree();
   });
 </script>
-<script>
+    <script>
   const userBtn = document.getElementById("userBtn");
   const userDropdown = document.getElementById("userDropdown");
 
@@ -1151,12 +1160,13 @@ document.getElementById("btnBacktest")?.addEventListener("click", async () => {
   });
 </script>
 
-<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 
-  <!-- Monaco (optional). If you don’t want CDN, skip and use textarea fallback. -->
-  <script src="https://unpkg.com/monaco-editor@0.49.0/min/vs/loader.js"></script>
+    <!-- Monaco (optional). If you don’t want CDN, skip and use textarea fallback. -->
+    <script
+      src="https://unpkg.com/monaco-editor@0.49.0/min/vs/loader.js"></script>
 
-  <script>
+    <script>
 (function () {
   const token =
     localStorage.getItem("auth_token") ||
@@ -1208,5 +1218,5 @@ document.getElementById("btnBacktest")?.addEventListener("click", async () => {
 })();
 </script>
 
-</body>
+  </body>
 </html>

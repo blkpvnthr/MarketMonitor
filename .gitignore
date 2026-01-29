@@ -1,13 +1,10 @@
 .env
 venv/*
 tempCodeRunnerFile.py
-session_state/*
-data_store/*
 .vscode/*
 .DS_Store
 # Python
 __pycache__/
-public/*
 *.py[cod]
 *.pyo
 *.pyd
