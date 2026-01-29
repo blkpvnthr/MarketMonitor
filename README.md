@@ -51,7 +51,7 @@ Users login to their accounts to access personalized watchlists, broker connecti
 
 ---
 ### Dashboard
-The day's top stock appears in the chart area with key metrics and recent session state changes listed to the bottom left and confirmed tickers appear on the lower right.
+The day's top stock appears in the chart area with key metrics. Recent session state changes listed to the bottom left and the session's confirmed tickers appear on the lower right.
 <p align="center">
   <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
