@@ -55,7 +55,7 @@ Users login to their accounts to access personalized watchlists, broker connecti
   <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
-Top stock appears in the chart area with key metrics and recent session state changes listed to the left.
+The day's top stock appears in the chart area with key metrics and recent session state changes listed to the left.
 
 
 ### Watchlist
