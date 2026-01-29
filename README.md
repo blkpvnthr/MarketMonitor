@@ -1,8 +1,8 @@
-# MarketMonitor
+# QuantumQuant
 
 <!-- Image carousel / gallery (README-friendly) -->
 <p align="center">
-  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 A real-time market monitor that streams **1-minute bars + live quotes** from Alpaca, aggregates them into **CLOSED 5m / 15m / 30m / 1h bars**, computes technical features **only on closed bars**, and runs an **eligibility / session-state engine** (VWAP + candle direction + chop detection) to determine which symbols are *trade-worthy* as the session develops.
@@ -21,11 +21,11 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
 ## 🌐 Web UI (Dashboard)
 The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine, and more.
  <p align="center">
-  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="140" alt="MarketMonitor screenshot 1" /></a>
- <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140" alt="MarketMonitor screenshot 3" /></a>
-  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140" alt="MarketMonitor screenshot 4" /></a>
+  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="140" alt="QuantumQuant screenshot 1" /></a>
+ <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" height="140" alt="QuantumQuant screenshot 2" /></a>
+  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140" alt="QuantumQuant screenshot 2" /></a>
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140" alt="QuantumQuant screenshot 3" /></a>
+  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140" alt="QuantumQuant screenshot 4" /></a>
   </p>
   
 ---
@@ -55,13 +55,13 @@ ___
 ### Login
 Users login to their accounts to access personalized watchlists, broker connections, and strategy settings.
 <p align="center">
-  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 ---
 ### Dashboard
 The day's top trade-worthy symbol appears in the chart with ability to scroll through other confirmed tickers.
-  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 
@@ -69,7 +69,7 @@ The day's top trade-worthy symbol appears in the chart with ability to scroll th
 ### Watchlist
 Recent session state changes listed on left and the session's confirmed tickers appear on the right. 
 <p align="center">
-  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 ---
@@ -77,7 +77,7 @@ Recent session state changes listed on left and the session's confirmed tickers 
 ### Broker Connections
 One-click broker connections allow users to easily link their brokerage accounts for order execution (coming soon).
 <p align="center">
-  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 
@@ -86,7 +86,7 @@ One-click broker connections allow users to easily link their brokerage accounts
 API references, system architecture, and  instructions on how to interact with the in-browser strategy scripting IDE.
 
 <p align="center">
-  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 
@@ -95,7 +95,7 @@ API references, system architecture, and  instructions on how to interact with t
 The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using historical data.
 
 <p align="center">
- <a href="images/ui/script-ide-05.png"><img src="images/ui/script-ide-05.png" width="900" height="500  alt="MarketMonitor screenshot 5" /></a>
+ <a href="images/ui/script-ide-05.png"><img src="images/ui/script-ide-05.png" width="900" height="500  alt="QuantumQuant screenshot 5" /></a>
  </p>
 
 
@@ -181,7 +181,7 @@ Includes:
 
 ## `session_state_YYYYMMDD.csv` sample:
 <p align="center">
-  <a href="images/ui/data-06.png"><img src="images/ui/data-06.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/data-06.png"><img src="images/ui/data-06.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
 
 ---
