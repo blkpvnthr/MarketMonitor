@@ -50,8 +50,7 @@ Users login to their accounts to access personalized watchlists, broker connecti
 
 ---
 ### Dashboard
-Trade-worthy symbols are highlighted in green the top stock appears in the chart area with key metrics.
-<p align="center">
+Top trade-worthy symbol appears in the chart with ability to scroll through other confirmed tickers.
   <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
