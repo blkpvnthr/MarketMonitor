@@ -83,6 +83,12 @@ One-click broker connections allow users to link their brokerage accounts for or
 Documentation provides quick access to system architecture, data layout, and API references for the in-browser IDE.
 
 ---
+### IDE / Backester
+ <a href="images/ui/ide-05.png"><img src="images/ui/ide-05.png" width="240" height="140  alt="MarketMonitor screenshot 5" /></a>
+
+The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using the session state data.
+
+---
 
 ## What the Script Does
 
@@ -152,8 +158,7 @@ For `REGIME_SYMBOL`:
   <p align="center">
   <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140 alt="MarketMonitor screenshot 2" /></a>
   <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140 alt="MarketMonitor screenshot 3" /></a>
-    <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140  alt="MarketMonitor screenshot 4" /></a>
-    <a href="images/ui/ide-05.png"><img src="images/ui/ide-05.png" width="240" height="140  alt="MarketMonitor screenshot 5" /></a>
+  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140  alt="MarketMonitor screenshot 4" /></a>
   </p>
   
 
