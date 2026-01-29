@@ -29,7 +29,7 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
   </p>
   
 
-The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
+> The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
 
 ---
 
