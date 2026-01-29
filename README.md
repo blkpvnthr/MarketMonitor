@@ -19,6 +19,19 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
 
 ---
 
+
+### Serving the UI
+Open a terminal and run the data engine:
+```bash
+python monitor.py
+```
+
+Next, in another terminal, start the FastAPI server:
+```bash
+uvicorn server:app --reload --port 8000
+
+---
+
 ## System Overview
 
 The system consists of:
@@ -118,8 +131,3 @@ Includes:
   </p>
 
 The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
-
-### Serving the UI
-
-```bash
-uvicorn server:app --reload --port 8000
