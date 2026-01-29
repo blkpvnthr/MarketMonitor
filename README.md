@@ -84,8 +84,6 @@ Documentation provides quick access to system architecture, data layout, and API
 
 ---
 
-
---- 
 ## What the Script Does
 
 ### 1) Streams Alpaca data
