@@ -1,5 +1,21 @@
 # MarketMonitor
 
+<!-- Image carousel / gallery (README-friendly) -->
+<p align="center">
+  <a href="images/01.png"><img src="images/01.png" width="240" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/02.png"><img src="images/02.png" width="240" alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/03.png"><img src="images/03.png" width="240" alt="MarketMonitor screenshot 3" /></a>
+</p>
+
+<details>
+  <summary><strong>More screenshots</strong></summary>
+  <p align="center">
+    <a href="images/04.png"><img src="images/04.png" width="240" alt="MarketMonitor screenshot 4" /></a>
+    <a href="images/05.png"><img src="images/05.png" width="240" alt="MarketMonitor screenshot 5" /></a>
+    <a href="images/06.png"><img src="images/06.png" width="240" alt="MarketMonitor screenshot 6" /></a>
+  </p>
+</details>
+
 A real-time market monitor that streams **1-minute bars + live quotes** from Alpaca, aggregates them into **CLOSED 5m / 15m / 30m / 1h bars**, computes technical features **only on closed bars**, and runs an **eligibility / session-state engine** (VWAP + candle direction + chop detection) to determine which symbols are *trade-worthy* as the session develops.
 
 It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from **1h closed bars** for a selected benchmark symbol.
