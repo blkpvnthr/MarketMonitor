@@ -58,7 +58,7 @@ Trade-worthy symbols are highlighted in green the top stock appears in the chart
 
 ---
 ### Watchlist
-Recent session state changes listed to the bottom left and the session's confirmed tickers appear on the lower right. 
+Recent session state changes listed on left and the session's confirmed tickers appear on the right. 
 <p align="center">
   <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
