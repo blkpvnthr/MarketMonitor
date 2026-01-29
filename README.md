@@ -41,8 +41,51 @@ The system consists of:
 - **FastAPI server** → serves API endpoints and static UI  
 - **Web UI dashboard** → real-time visualization of session state (read-only)
 
+___
+### Login Page
+<p align="center">
+  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+</p>
+
+Users login to their accounts to access personalized watchlists, broker connections, and strategy settings.
+
+---
+### Dashboard
+<p align="center">
+  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+</p>
+
+Top stock appears in the chart area with key metrics and recent session state changes listed to the left.
+
+
+### Watchlist
+<p align="center">
+  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+</p>
+
+Trade-worthy symbols are highlighted in green the top stock appears in the chart area with key metrics.
+
 ---
 
+### Broker Connections
+<p align="center">
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+</p>
+
+One-click broker connections allow users to link their brokerage accounts for order execution (coming soon).
+
+---
+### Documentation
+<p align="center">
+  <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
+</p>
+
+Documentation provides quick access to system architecture, data layout, and API references for the in-browser IDE.
+
+---
+
+
+--- 
 ## What the Script Does
 
 ### 1) Streams Alpaca data
