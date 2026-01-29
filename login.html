@@ -962,26 +962,31 @@ header{ margin-top: 0 !important; }
 </head>
 
 <body>
-  <!-- Navbar -->
-  <!-- User Profile -->
-        <div class="userMenu" id="userMenu">
-          <button class="userBtn" id="userBtn" aria-haspopup="true" aria-expanded="false" type="button">
-            <span class="avatar" id="userAvatar">??</span>
-            <span class="caret">▾</span>
-          </button>
+ <!-- Navbar -->
+  <nav class="navbar" role="navigation" aria-label="Primary">
+    <div class="navwrap">
+      <div class="navLeft">
+        <a href="/" style="text-decoration:none;color:inherit;">
+          <div class="navTitle">
+            <strong>Quantum<span style="font-weight: 100 !important;">Quant</span></strong>
+          </div>
+        </a>
+      </div>
 
-          <div class="userDropdown" id="userDropdown" role="menu" aria-label="User menu">
-            <a href="/account.html">Account</a>
-            <a href="/settings.html">Settings</a>
-            <a href="/positions.html">Positions</a>
-            <a href="/trades.html">Trade Logs</a>
-            <a href="/security.html">Security</a>
-            <a href="/ideas.html">Ideas</a>
-            <div class="divider"></div>
-            <a href="/help.html">Help</a>
-            <div class="divider"></div>
-            <a href="/login.html" id="loginLink">Log in</a>
-            <a href="/logout" id="logoutLink" class="danger" style="display:none;">Log out</a>
+      <div class="navLinks" aria-label="Quick links">
+        <a href="/index.html" class="active"><span>Dashboard</span></a>
+        <a href="/brokers.html">Brokers</a>
+        <a href="/script.html">Strategy</a>
+        <a href="/backtests.html">Backtests</a>
+      </div>
+
+      <div class="navRight">
+        <input class="navSearch" id="nav-search" type="text" placeholder="Filter feed (e.g. quote, trade)" />
+        <span class="pill" id="nav-clock">--:--</span>
+
+       
+
+         
           </div>
         </div>
       </div>
