@@ -112,7 +112,7 @@ Includes:
 ## 🌐 Web UI (Dashboard)
 
   <p align="center">
-  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="190 alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="190 alt="MarketMonitor screenshot 2" /></a>
   <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="190 alt="MarketMonitor screenshot 3" /></a>
     <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="190  alt="MarketMonitor screenshot 4" /></a>
   </p>
