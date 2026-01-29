@@ -194,7 +194,7 @@ Automated trading strategy selection engine and order execution based on output 
 
 ---
 
-# 🪪 License
+## 🪪 License
 
 © 2025 Asmaa Abdul-Amin.
 > This project is open source under the MIT License.
