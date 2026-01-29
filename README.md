@@ -164,6 +164,9 @@ Includes:
 - `reason`
 - Quote snapshot fields (`bid / ask / mid / spread`)
 
+# COMING SOON:
+> Automated strategy selection engine and order execution based on output from `session_state.csv` via connected brokers.
+
 ---
 
 ## 🌐 Web UI (Dashboard)
