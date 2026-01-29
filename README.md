@@ -19,8 +19,8 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
 ---
 
 ## 🌐 Web UI (Dashboard)
-
-  <p align="center">
+The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
+ <p align="center">
   <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="140" alt="MarketMonitor screenshot 1" /></a>
  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
   <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140" alt="MarketMonitor screenshot 2" /></a>
@@ -28,9 +28,6 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
   <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140" alt="MarketMonitor screenshot 4" /></a>
   </p>
   
-
-> The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
-
 ---
 
 ### Serving the UI
