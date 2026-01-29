@@ -91,7 +91,7 @@ API references, system architecture, and  instructions on how to interact with t
 
 
 ---
-### IDE / Backester
+### IDE / Backesting Engine
 The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using the session state data.
 
 <p align="center">
