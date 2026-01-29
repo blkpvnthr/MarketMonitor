@@ -84,7 +84,7 @@ Documentation provides quick access to system architecture, data layout, and API
 
 ---
 ### IDE / Backester
- <a href="images/ui/ide-05.png"><img src="images/ui/ide-05.png" width="240" height="140  alt="MarketMonitor screenshot 5" /></a>
+ <a href="images/ui/script-ide-05.png"><img src="images/ui/script-ide-05.png" width="240" height="140  alt="MarketMonitor screenshot 5" /></a>
 
 The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using the session state data.
 
