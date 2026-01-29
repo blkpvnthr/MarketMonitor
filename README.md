@@ -73,7 +73,7 @@ One-click broker connections allow users to easily link their brokerage accounts
 
 ---
 ### Documentation
-Documentation provides quick access to system architecture, data layout, and API references for the in-browser IDE.
+API references, system architecture, and  Instructions on how to interact with the in-browser strategy scripting IDE.
 
 <p align="center">
   <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
