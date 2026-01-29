@@ -29,6 +29,7 @@ python monitor.py
 Next, in another terminal, start the FastAPI server:
 ```bash
 uvicorn server:app --reload --port 8000
+```
 
 ---
 
