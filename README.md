@@ -182,8 +182,19 @@ Includes:
 - `reason`
 - Quote snapshot fields (`bid / ask / mid / spread`)
 
+`session_state_YYYYMMDD.csv` sample:
 <p align="center">
   <a href="images/ui/data-06.png"><img src="images/ui/data-06.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
+
+---
+
 # COMING SOON:
 > Automated trading strategy selection engine and order execution based on output from `session_state_YYYYMMDD.csv` via connected brokers.
+
+---
+
+🪪 License
+
+© 2025 Asmaa Abdul-Amin.
+> This project is open source under the MIT License.
