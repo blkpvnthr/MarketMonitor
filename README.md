@@ -184,7 +184,7 @@ Includes:
 - `reason`
 - Quote snapshot fields (`bid / ask / mid / spread`)
 
-`session_state_YYYYMMDD.csv` sample:
+## `session_state_YYYYMMDD.csv` sample:
 <p align="center">
   <a href="images/ui/data-06.png"><img src="images/ui/data-06.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
