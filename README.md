@@ -190,7 +190,7 @@ Includes:
 ---
 
 # COMING SOON:
-> Automated trading strategy selection engine and order execution based on output from `session_state_YYYYMMDD.csv` via connected brokers.
+Automated trading strategy selection engine and order execution based on output from `session_state_YYYYMMDD.csv` via connected brokers.
 
 ---
 
