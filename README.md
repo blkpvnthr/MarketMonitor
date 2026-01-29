@@ -149,6 +149,18 @@ For `REGIME_SYMBOL`:
 
 ---
 
+## 🌐 Web UI (Dashboard)
+
+  <p align="center">
+  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140 alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140 alt="MarketMonitor screenshot 3" /></a>
+    <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140  alt="MarketMonitor screenshot 4" /></a>
+  </p>
+
+The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
+
+---
+
 ## Output / Data Layout
 
 All outputs are **append-only CSVs** under `OUT_DIR` (default: `./data_store`).
@@ -166,15 +178,3 @@ Includes:
 
 # COMING SOON:
 > Automated trading strategy selection engine and order execution based on output from `session_state_YYYYMMDD.csv` via connected brokers.
-
----
-
-## 🌐 Web UI (Dashboard)
-
-  <p align="center">
-  <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="240" height="140 alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140 alt="MarketMonitor screenshot 3" /></a>
-    <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140  alt="MarketMonitor screenshot 4" /></a>
-  </p>
-
-The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
