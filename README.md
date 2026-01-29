@@ -65,7 +65,7 @@ Recent session state changes listed on left and the session's confirmed tickers 
 ---
 
 ### Broker Connections
-One-click broker connections allow users to link their brokerage accounts for order execution (coming soon).
+One-click broker connections allow users to easily link their brokerage accounts for order execution (coming soon).
 <p align="center">
   <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
