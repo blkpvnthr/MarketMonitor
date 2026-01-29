@@ -9,6 +9,14 @@ A real-time market monitor that streams **1-minute bars + live quotes** from Alp
 
 It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from **1h closed bars** for a selected benchmark symbol.
 
+> ⚙️ **Trading Style Note**  
+> The engine is **designed primarily for swing trading** (multi-hour to multi-day positioning), but the architecture is **fully adaptable**:
+> - Timeframe gates can be adjusted (e.g. scalping with 1m/3m/5m)
+> - VWAP and regime logic can be swapped or extended
+> - Risk and sizing modules can be tuned per strategy  
+> The system intentionally separates **signal qualification** from **execution**, making it flexible across trading styles.
+
+---
 
 ## 🌐 Web UI (Dashboard)
 
@@ -23,15 +31,7 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
 
 The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
 
-> ⚙️ **Trading Style Note**  
-> The engine is **designed primarily for swing trading** (multi-hour to multi-day positioning), but the architecture is **fully adaptable**:
-> - Timeframe gates can be adjusted (e.g. scalping with 1m/3m/5m)
-> - VWAP and regime logic can be swapped or extended
-> - Risk and sizing modules can be tuned per strategy  
-> The system intentionally separates **signal qualification** from **execution**, making it flexible across trading styles.
-
 ---
-
 
 ### Serving the UI
 Open a terminal and run the data engine:
