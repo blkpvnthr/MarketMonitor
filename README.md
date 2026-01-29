@@ -43,52 +43,54 @@ The system consists of:
 
 ___
 ### Login
+Users login to their accounts to access personalized watchlists, broker connections, and strategy settings.
 <p align="center">
   <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
-Users login to their accounts to access personalized watchlists, broker connections, and strategy settings.
 
 ---
 ### Dashboard
+The day's top stock appears in the chart area with key metrics and recent session state changes listed to the left.
 <p align="center">
   <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
-The day's top stock appears in the chart area with key metrics and recent session state changes listed to the left.
 
 ---
 ### Watchlist
+Trade-worthy symbols are highlighted in green the top stock appears in the chart area with key metrics.
 <p align="center">
   <a href="images/ui/watchlist-02.png"><img src="images/ui/watchlist-02.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
-Trade-worthy symbols are highlighted in green the top stock appears in the chart area with key metrics.
 
 ---
 
 ### Broker Connections
+One-click broker connections allow users to link their brokerage accounts for order execution (coming soon).
 <p align="center">
   <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
-One-click broker connections allow users to link their brokerage accounts for order execution (coming soon).
 
 ---
 ### Documentation
+Documentation provides quick access to system architecture, data layout, and API references for the in-browser IDE.
+
 <p align="center">
   <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
-Documentation provides quick access to system architecture, data layout, and API references for the in-browser IDE.
 
 ---
 ### IDE / Backester
+The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using the session state data.
+
 <p align="center">
  <a href="images/ui/script-ide-05.png"><img src="images/ui/script-ide-05.png" width="900" height="500  alt="MarketMonitor screenshot 5" /></a>
  </p>
 
-The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using the session state data.
 
 ---
 
