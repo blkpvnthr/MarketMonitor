@@ -2,17 +2,17 @@
 
 <!-- Image carousel / gallery (README-friendly) -->
 <p align="center">
-  <a href="images/01.png"><img src="images/01.png" width="240" alt="MarketMonitor screenshot 1" /></a>
-  <a href="images/02.png"><img src="images/02.png" width="240" alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/03.png"><img src="images/03.png" width="240" alt="MarketMonitor screenshot 3" /></a>
+  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" alt="MarketMonitor screenshot 3" /></a>
 </p>
 
 <details>
   <summary><strong>More screenshots</strong></summary>
   <p align="center">
-    <a href="images/04.png"><img src="images/04.png" width="240" alt="MarketMonitor screenshot 4" /></a>
-    <a href="images/05.png"><img src="images/05.png" width="240" alt="MarketMonitor screenshot 5" /></a>
-    <a href="images/06.png"><img src="images/06.png" width="240" alt="MarketMonitor screenshot 6" /></a>
+    <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" alt="MarketMonitor screenshot 4" /></a>
+    <a href="images/ui/positions-05.png"><img src="images/ui/positions-05.png" width="240" alt="MarketMonitor screenshot 5" /></a>
+    <a href="images/ui/symbols-06.png"><img src="images/ui/symbols-06.png" width="240" alt="MarketMonitor screenshot 6" /></a>
   </p>
 </details>
 
