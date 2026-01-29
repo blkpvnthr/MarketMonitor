@@ -2,7 +2,7 @@
 
 <!-- Image carousel / gallery (README-friendly) -->
 <p align="center">
-  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="600" height="500" alt="MarketMonitor screenshot 1" /></a>
+  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="MarketMonitor screenshot 1" /></a>
 </p>
 
 A real-time market monitor that streams **1-minute bars + live quotes** from Alpaca, aggregates them into **CLOSED 5m / 15m / 30m / 1h bars**, computes technical features **only on closed bars**, and runs an **eligibility / session-state engine** (VWAP + candle direction + chop detection) to determine which symbols are *trade-worthy* as the session develops.
