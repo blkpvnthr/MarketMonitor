@@ -111,13 +111,11 @@ Includes:
 
 ## 🌐 Web UI (Dashboard)
 
-<details>
   <p align="center">
-  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="600" height="900 alt="MarketMonitor screenshot 2" /></a>
-  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="600" height="900 alt="MarketMonitor screenshot 3" /></a>
-    <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="600" height="900  alt="MarketMonitor screenshot 4" /></a>
+  <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="900 alt="MarketMonitor screenshot 2" /></a>
+  <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="900 alt="MarketMonitor screenshot 3" /></a>
+    <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="900  alt="MarketMonitor screenshot 4" /></a>
   </p>
-</details>
 
 The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine and more.
 
