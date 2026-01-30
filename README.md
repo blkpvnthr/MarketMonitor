@@ -92,7 +92,7 @@ API references, system architecture, and  instructions on how to interact with t
 
 ---
 ### IDE / Backesting Engine
-The in-browser IDE allows users to write, backtest, and deploy custom trading strategies using historical data.
+The in-browser IDE allows users to write, backtest using historical data, and deploy their custom trading strategies.
 
 <p align="center">
  <a href="images/ui/script-ide-05.png"><img src="images/ui/script-ide-05.png" width="900" height="500  alt="QuantumQuant screenshot 5" /></a>
