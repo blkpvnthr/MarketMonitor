@@ -14,6 +14,19 @@ from pymongo.errors import DuplicateKeyError
 
 from passlib.context import CryptContext
 from jose import jwt
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+app = FastAPI()
+
+BASE = Path(__file__).parent
+
+app.mount(
+    "/data_store",
+    StaticFiles(directory=str(BASE / "data_store")),
+    name="data_store"
+)
 
 # ========= Config =========
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")

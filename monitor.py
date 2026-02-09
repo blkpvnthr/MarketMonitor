@@ -9,7 +9,27 @@ from enum import Enum
 from typing import Deque, Dict, Optional, List, Tuple, Any
 from pathlib import Path
 
-from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
+NY = ZoneInfo("America/New_York")
+
+
+load_dotenv()
+APCA_API_KEY_ID = os.getenv("APCA_API_KEY_ID", "")
+APCA_API_SECRET_KEY = os.getenv("APCA_API_SECRET_KEY", "")
+APCA_PAPER = os.getenv("APCA_PAPER", "true").lower() == "true"
+if not APCA_API_KEY_ID:
+    raise ValueError("Missing APCA_API_KEY_ID in environment / .env")
+if not APCA_API_SECRET_KEY:
+    raise ValueError("Missing APCA_API_SECRET_KEY in environment / .env")
+WS_URL = os.getenv("ALPACA_WS_URL", "wss://stream.data.alpaca.markets/v2/iex")
+RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "trading-runner:latest")
+WORK_ROOT = Path(os.getenv("WORK_ROOT", "workspaces"))
+
+# Safety caps
+RUN_TIMEOUT_SEC_DEFAULT = int(os.getenv("RUN_TIMEOUT_SEC", "30"))
+RUN_CPUS = os.getenv("RUN_CPUS", "1.0")
+RUN_MEMORY = os.getenv("RUN_MEMORY", "768m")
+RUN_PIDS = os.getenv("RUN_PIDS", "256")
+
 
 import numpy as np # pyright: ignore[reportMissingImports]
 import pandas as pd # pyright: ignore[reportMissingModuleSource]

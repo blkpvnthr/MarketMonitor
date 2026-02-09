@@ -1,9 +1,11 @@
 # QuantumQuant
 
+<!-- markdownlint-disable MD033 -->
 <!-- Image carousel / gallery (README-friendly) -->
 <p align="center">
   <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
+<!-- markdownlint-enable MD033 -->
 
 A real-time market monitor that streams **1-minute bars + live quotes** from Alpaca, aggregates them into **CLOSED 5m / 15m / 30m / 1h bars**, computes technical features **only on closed bars**, and runs an **eligibility / session-state engine** (VWAP + candle direction + chop detection) to determine which symbols are *trade-worthy* as the session develops.
 
@@ -11,15 +13,20 @@ It also labels a **market regime** (**TREND/RANGE × HIGH/LOW volatility**) from
 
 > ⚙️ **Trading Style Note**  
 > The engine is **designed primarily for swing trading** (multi-hour to multi-day positioning), but the architecture is **fully adaptable**:
+>
 > - Timeframe gates can be adjusted (e.g. scalping with 1m/3m/5m)
 > - VWAP and regime logic can be swapped or extended
 > - Risk and sizing modules can be tuned per strategy  
+>
 > The system intentionally separates **signal qualification** from **execution**, making it flexible across trading styles.
 
 ---
 
 ## 🌐 Web UI (Dashboard)
+
 The UI is a **real-time visualization** of the CSV outputs with in-browser strategy scripting, one-click broker connections, backtesting engine, and more.
+
+<!-- markdownlint-disable MD033 -->
  <p align="center">
   <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="240" height="140" alt="QuantumQuant screenshot 1" /></a>
  <a href="images/ui/index-01.png"><img src="images/ui/index-01.png" width="240" height="140" alt="QuantumQuant screenshot 2" /></a>
@@ -27,16 +34,24 @@ The UI is a **real-time visualization** of the CSV outputs with in-browser strat
   <a href="images/ui/brokers-03.png"><img src="images/ui/brokers-03.png" width="240" height="140" alt="QuantumQuant screenshot 3" /></a>
   <a href="images/ui/documentation-04.png"><img src="images/ui/documentation-04.png" width="240" height="140" alt="QuantumQuant screenshot 4" /></a>
   </p>
+<!-- markdownlint-enable MD033 -->
   
 ---
 
-### Serving the UI
-Open a terminal and run the data engine:
+### Init Sequence
+Run a terminal and run the data engine:
 ```bash
 python monitor.py
 ```
-
-Next, in another terminal, start the FastAPI server:
+Run the trade scanner (optional):
+```bash
+python trade.py
+```
+Run the FastAPI server to serve the UI:
+```bash 
+python server.py
+```
+In another terminal, start the FastAPI server:
 ```bash
 uvicorn server:app --reload --port 8000
 ```
@@ -54,9 +69,12 @@ The system consists of:
 ___
 ### Login
 Users login to their accounts to access personalized watchlists, broker connections, and strategy settings.
+
+<!-- markdownlint-disable MD033 -->
 <p align="center">
   <a href="images/ui/login-00.png"><img src="images/ui/login-00.png" width="900" height="500" alt="QuantumQuant screenshot 1" /></a>
 </p>
+<!-- markdownlint-enable MD033 -->
 
 ---
 ### Dashboard

@@ -1,22 +1,20 @@
 # === Core Scientific Libraries ===
-scipy==1.10.1
-matplotlib==3.7.5
-seaborn==0.13.2
-scikit-learn==1.3.2
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-pandas==2.2.2
-numpy==2.0.1
-yfinance==0.2.43
-pydantic==2.8.2
-python-dateutil==2.9.0.post0
+scip
+matplotlib
+seaborn
+scikit-learn
+fastapi
+uvicorn[standard]
+pandas
+numpy
+yfinance
+pydantic
+python-dateutil
 
 # === TensorFlow Stack ===
 fastapi 
 uvicorn 
-motor 
-"passlib[bcrypt]" 
-"python-jose[cryptography]"
+motor  
 alpaca-py
 websocket
 websocket-client
@@ -70,11 +68,6 @@ Nasdaq-Data-Link==1.0.4
 # === IBM Cloud SDKs ===
 ibm-cloud-sdk-core
 ibm-platform-services
-
-# === Authentication & Security ===
-
-
-# === Pydantic + Typing ===
 
 
 # === Data Parsing / Visualization ===

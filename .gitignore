@@ -2,7 +2,7 @@
 venv/*
 tempCodeRunnerFile.py
 .vscode/*
-.DS_Store
+.DS_Store/
 # Python
 __pycache__/
 *.py[cod]
@@ -14,6 +14,10 @@ __pycache__/
 .coverage
 htmlcov/
 .cache/
+data_store/
+trade/
+.venv-check/
+images/.DS_Store/
 
 # Environments
 venv/
